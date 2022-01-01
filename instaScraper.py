@@ -272,7 +272,7 @@ def initial_profile_database(profiles):
     print('INITIAL PROFILE DATABASE finished')
         
     
-
+ 
 def add_to_watchlist(username, last_post_date, last_post_time,link):
     # open watchlist db and then save information into it
     information = {KEY_USERNAME: username, KEY_LAST_POST_DATE: last_post_date, KEY_LAST_POST_TIME: last_post_time, KEY_LINK:link}

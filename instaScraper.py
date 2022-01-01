@@ -256,6 +256,7 @@ def initial_profile_database(profiles):
         print(f'User {counter} of {profiles_count} is in proccessing')
         profile_information = {}
         find_profile(profile)
+        now = datetime.  
         followers, following, posts, last_post_date, last_post_time, likes, views, link = get_profile_information()
         user_information = {KEY_USERNAME : profile}
         profile_information.update(user_information)

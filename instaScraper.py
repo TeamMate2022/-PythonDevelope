@@ -52,7 +52,7 @@ KEY_VIEWS = "views"
 KEY_ENGAGEMENT = "engagement"
 KEY_LINK = 'link'
 KEY_SAVE_TIME = 'save_time'
-
+KEY_SAVE_DATE = 'save_date'
 
 
 CLEANED_FILE = False
@@ -117,11 +117,11 @@ def get_profile_information():
     posts = int(driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[1]/span/span").text.replace(',',''))
     
     # open last post and get time
-    last_post_date, last_post_time, user, link = get_last_post_information()
+    last_post_date, last_post_time, user, link, date_save, time_save = get_last_post_information()
     link = ''.join(link)
     likes, views= total_likes(1)
 
-    return ({KEY_FOLLOWERS : followers}, {KEY_FOLLOWING : following}, {KEY_POSTS : posts}, {KEY_LAST_POST_DATE : last_post_date}, {KEY_LAST_POST_TIME : last_post_time}, {KEY_LIKES : likes}, {KEY_VIEWS : views}, {KEY_LINK : link})
+    return ({KEY_FOLLOWERS : followers}, {KEY_FOLLOWING : following}, {KEY_POSTS : posts}, {KEY_LAST_POST_DATE : last_post_date}, {KEY_LAST_POST_TIME : last_post_time}, {KEY_LIKES : likes}, {KEY_VIEWS : views}, {KEY_LINK : link}, {KEY_SAVE_DATE : date_save} , {KEY_SAVE_TIME: time_save})
 
 
 
@@ -146,9 +146,14 @@ def get_last_post_information():
         post_datetime = driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/div[2]/a/time").get_attribute('datetime')
         post_date, post_time = post_datetime.split("T")
         post_time = post_time[:len(post_time)-5]
+        c = str(datetime.datetime.now())
+
+        date_save , time_save = c.split(' ')
+
+        time_save = time_save[:-7]
         
         print(post_date, post_time)
-    return (post_date, post_time, user_name, posts_links)
+    return (post_date, post_time, user_name, posts_links, date_save, time_save)
 
 
 # ------------------------------------------------------------------------------
@@ -256,17 +261,20 @@ def initial_profile_database(profiles):
         print(f'User {counter} of {profiles_count} is in proccessing')
         profile_information = {}
         find_profile(profile)
-        now = datetime.  
-        followers, following, posts, last_post_date, last_post_time, likes, views, link = get_profile_information()
+        # now = datetime.  
+        followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save = get_profile_information()
         user_information = {KEY_USERNAME : profile}
         profile_information.update(user_information)
         profile_information.update(followers)
         profile_information.update(following)
         profile_information.update(likes)
         profile_information.update(views)
+        profile_information.update(link)
         profile_information.update(posts)
         profile_information.update(last_post_date)
         profile_information.update(last_post_time)
+        profile_information.update(date_save)
+        profile_information.update(time_save)
         write_information(PAGES_INIT_DB, profile_information)
         counter += 1
         

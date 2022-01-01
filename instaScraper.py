@@ -13,12 +13,12 @@ import datetime
 DRIVER_PATH = os.path.dirname(__file__) + r"/chromedriver"
 driver = webdriver.Chrome(DRIVER_PATH)
 
-USERNAME = 'annonymous_test'
+USERNAME = 'tes_tthis'
 PASSWORD = 'this is a test 123'
 
 DEBUG = True
-COOKIES = True
-INIT_DATABASE_STATUS = True
+COOKIES = False
+INIT_DATABASE_STATUS = False
 
 PROFILES_USERNAME_DB = os.path.dirname(__file__) + r"/user_profiles_db.txt"
 PAGES_INIT_DB = os.path.dirname(__file__) + r"/pages_init_db.txt"
@@ -33,7 +33,7 @@ LOADING_PERIOD = 9
 PAGE_INTERACT_PERIOD = 4
 MAX_POSTS = 5
 
-WATCHLIST_PERIOD = 3600
+WATCHLIST_PERIOD = 600
 
 # TODO :
 #  1. check that user_profiles.txt exist, otherwise run script to get profiles (def retrive_usernames)
@@ -50,6 +50,9 @@ KEY_LAST_POST_TIME = "last_post_time"
 KEY_LIKES = "likes"
 KEY_VIEWS = "views"
 KEY_ENGAGEMENT = "engagement"
+KEY_LINK = 'link'
+KEY_SAVE_TIME = 'save_time'
+
 
 
 CLEANED_FILE = False
@@ -102,14 +105,25 @@ def get_profile_information():
     time.sleep(LOADING_PERIOD)
     
     followers = (driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[2]/a/span").get_attribute("title").replace(',', '')) 
-    following = (driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[3]/a/span").text.replace('following', '').replace(' ', ''))
+    
+    try:
+        
+       following = (driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[3]/a/span").text.replace('following', '').replace(' ', ''))
+    
+    except:
+    
+        following = 0
     
     posts = int(driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[1]/span/span").text.replace(',',''))
     
     # open last post and get time
-    last_post_date, last_post_time = get_last_post_information()
+    last_post_date, last_post_time, user, link = get_last_post_information()
+    link = ''.join(link)
+    likes, views= total_likes(1)
 
-    return ({KEY_FOLLOWERS : followers}, {KEY_FOLLOWING : following}, {KEY_POSTS : posts}, {KEY_LAST_POST_DATE : last_post_date}, {KEY_LAST_POST_TIME : last_post_time})
+    return ({KEY_FOLLOWERS : followers}, {KEY_FOLLOWING : following}, {KEY_POSTS : posts}, {KEY_LAST_POST_DATE : last_post_date}, {KEY_LAST_POST_TIME : last_post_time}, {KEY_LIKES : likes}, {KEY_VIEWS : views}, {KEY_LINK : link})
+
+
 
 
 def get_last_post_information():
@@ -127,13 +141,14 @@ def get_last_post_information():
     # post_date, post_time = ""
     for post in posts_links:
         driver.get(post)
-        time.sleep(PAGE_INTERACT_PERIOD)             
+        time.sleep(PAGE_INTERACT_PERIOD)       
+        user_name = driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[1]/div/header/div[2]/div[1]/div[1]/span/a").text
         post_datetime = driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/div[2]/a/time").get_attribute('datetime')
         post_date, post_time = post_datetime.split("T")
         post_time = post_time[:len(post_time)-5]
         
         print(post_date, post_time)
-    return (post_date, post_time)
+    return (post_date, post_time, user_name, posts_links)
 
 
 # ------------------------------------------------------------------------------
@@ -180,8 +195,8 @@ def total_likes(MAX_POSTS):
         counter += 1
         
     # return dictionary 
-    return ({KEY_LIKES : sum_likes}, {KEY_VIEWS : sum_view}, {KEY_ANALYSED_POSTS: len(posts_links)})
-    
+    # return ({KEY_LIKES : sum_likes}, {KEY_VIEWS : sum_view}, {KEY_ANALYSED_POSTS: len(posts_links)})
+    return (sum_likes, sum_view)
 
 def calculate_engagement(likes, views, followers):
     engagement = (((likes+views) / MAX_POSTS) / int(followers)) * 100
@@ -235,16 +250,19 @@ def scrape_instagram_profiles(profiles):
 
 def initial_profile_database(profiles):
     profiles_count = len(profiles)
+    
     counter = 1
     for profile in profiles:
         print(f'User {counter} of {profiles_count} is in proccessing')
         profile_information = {}
         find_profile(profile)
-        followers, following, posts, last_post_date, last_post_time = get_profile_information()
+        followers, following, posts, last_post_date, last_post_time, likes, views, link = get_profile_information()
         user_information = {KEY_USERNAME : profile}
         profile_information.update(user_information)
         profile_information.update(followers)
         profile_information.update(following)
+        profile_information.update(likes)
+        profile_information.update(views)
         profile_information.update(posts)
         profile_information.update(last_post_date)
         profile_information.update(last_post_time)
@@ -252,11 +270,12 @@ def initial_profile_database(profiles):
         counter += 1
         
     print('INITIAL PROFILE DATABASE finished')
+        
     
 
-def add_to_watchlist(username, last_post_date, last_post_time):
+def add_to_watchlist(username, last_post_date, last_post_time,link):
     # open watchlist db and then save information into it
-    information = {KEY_USERNAME: username, KEY_LAST_POST_DATE: last_post_date, KEY_LAST_POST_TIME: last_post_time}
+    information = {KEY_USERNAME: username, KEY_LAST_POST_DATE: last_post_date, KEY_LAST_POST_TIME: last_post_time, KEY_LINK:link}
     with open(WATCHLIST_DB, 'a') as file:
         print('Saving information in watchlist file')
         file.write(json.dumps(information))
@@ -272,19 +291,23 @@ def check_profiles(PAGES_INIT_DB):
         find_profile(profile[KEY_USERNAME])
         db_datetime = strToDatetime(profile[KEY_LAST_POST_DATE] + ' ' + profile[KEY_LAST_POST_TIME])
         time.sleep(PAGE_INTERACT_PERIOD)
-        post_date, post_time = get_last_post_information()
+        post_date, post_time , user, link= get_last_post_information()
         current_post_datetime = strToDatetime(post_date + ' ' + post_time)
         
         if db_datetime != current_post_datetime:
             # new post founded!
             # add page to watchlist
             print(f'New post detect in {profile[KEY_USERNAME]}, adding to watchlist')
-            add_to_watchlist(profile[KEY_USERNAME], post_date, post_time)
+            add_to_watchlist(profile[KEY_USERNAME], post_date, post_time, link)
     
 def monitoring(PAGES_INIT_DB):
     print('Monitoring Started')
     check_profiles(PAGES_INIT_DB)
     
+# def posts_monitoring (links : list):
+#     profile_information = {}
+#     print(list(links))
+        
 
 # Main ________________________________________________
 # we will sign into instagram and make environment ready to run script
@@ -294,20 +317,22 @@ def run_bot():
     # step A. connect to instagram and create file which contains user followers, username, last post time
     # connect to instagram and login to account
     init_instagram()
+    initial_profile_database(profiles)
     
-    if not INIT_DATABASE_STATUS:
+    
+    # if not INIT_DATABASE_STATUS:
         # init a database of users information
-        initial_profile_database(profiles)
+    while True:
     
-    # keep eyes on profiles that post new content
-    monitoring(PAGES_INIT_DB)
-    
+        # keep eyes on profiles that post new content
+        monitoring(PAGES_INIT_DB)
+        time.sleep(WATCHLIST_PERIOD)
 
 # TODO: WARNING - edit here in production
 if not DEBUG:    
     profiles = get_usernames(PROFILES_USERNAME_DB)
 else: 
-    profiles = get_usernames(PROFILES_USERNAME_DB)[:2]
+    profiles = get_usernames(PROFILES_USERNAME_DB)[98:100]
 
 
 

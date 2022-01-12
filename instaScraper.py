@@ -4,18 +4,23 @@ Created on Mon Dec 27 18:38:26 2021
 
 @author : Amirhosein syh
 """
+
 import os
+
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from datetime import date
+
 import time, datetime
 import json, csv
+
 import pandas as pd
 
 # config:
 DRIVER_PATH = os.path.dirname(__file__) + r"/chromedriver"
 driver = webdriver.Chrome(DRIVER_PATH)
 
-USERNAME = ''
+USERNAME = 'tes_tthis'
 PASSWORD = 'this is a test 123'
 
 DEBUG = True
@@ -34,7 +39,7 @@ LOADING_PERIOD = 15
 PAGE_INTERACT_PERIOD = 6
 MAX_POSTS = 5
 
-WATCHLIST_PERIOD = 40
+WATCHLIST_PERIOD = 30
 WATCHLIST_REFRESH = 30
 
 # TODO :
@@ -306,15 +311,20 @@ def scrape_instagram_profiles(profiles):
 
 
 def initial_profile_database(profiles):
+    
     profiles_count = len(profiles)
+    
     days = 14
     # list_info = []
     counter = 1
+    
     for profile in profiles:
+        
         print(f'User {counter} of {profiles_count} is in proccessing')
         profile_information = {}
         #check_info makes dictionary with username , link , date and days of remaining for checking 
-        
+        path = CSV_FILE  +'\\' + profile 
+
         check_info = {}
         find_profile(profile)
         
@@ -383,7 +393,7 @@ def check_profiles(profiles, PAGES_INIT_DB):
     # steps:
     # search profiles that was read from db and then compare with data that in init db
     dtfr = read_information(PAGES_INIT_DB)
-    print(dtfr)
+    # print(dtfr)
     for profile in profiles:
         find_profile(profile)
         # db_datetime = strToDatetime(profile[KEY_LAST_POST_DATE] + ' ' + profile[KEY_LAST_POST_TIME])
@@ -391,17 +401,21 @@ def check_profiles(profiles, PAGES_INIT_DB):
         time.sleep(PAGE_INTERACT_PERIOD)
         post_date, post_time , user, link, date_save, time_save = get_last_post_information()
         current_post_datetime = strToDatetime(post_date + ' ' + post_time)
-        
-        if db_datetime > current_post_datetime:
+        print(link,user)
+        if db_datetime < current_post_datetime:
+            
+            
             # new post founded!
             # add page to watchlist
-            print(f'New post detect in {profile[KEY_USERNAME]}, adding to watchlist')
+            
+            print(f'New post detect in adding to watchlist')
             # add_to_watchlist(profile[KEY_USERNAME], post_date, post_time, link,date_save, time_save)
         else:
             print('nothin detected')
     
 
 def monitoring(profiles, PAGES_INIT_DB):
+    
     print('Monitoring Started')
     check_profiles(profiles, PAGES_INIT_DB)
     
@@ -417,21 +431,24 @@ def run_bot():
     # connect to instagram and login to account
     init_instagram()
     initial_profile_database(profiles)
-    make_csv_file(profiles)
+    # make_csv_file(profiles)
     
     # if not INIT_DATABASE_STATUS:
         # init a database of users information
     # while True:
     
         # keep eyes on profiles that post new content
-    monitoring(profiles, PAGES_INIT_DB)
+    # while True:
+        
+        # monitoring(profiles, PAGES_INIT_DB)
+        
         # time.sleep(WATCHLIST_PERIOD)
 
 # TODO: WARNING - edit here in production
 if not DEBUG:    
     profiles = get_usernames(PROFILES_USERNAME_DB)
 else: 
-    profiles = get_usernames(PROFILES_USERNAME_DB)[:1]
+    profiles = get_usernames(PROFILES_USERNAME_DB)[:4]
 
 
 

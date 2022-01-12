@@ -15,7 +15,7 @@ import pandas as pd
 DRIVER_PATH = os.path.dirname(__file__) + r"/chromedriver"
 driver = webdriver.Chrome(DRIVER_PATH)
 
-USERNAME = ''
+USERNAME = 'tes_tthis'
 PASSWORD = 'this is a test 123'
 
 DEBUG = True
@@ -393,13 +393,17 @@ def check_profiles(profiles, PAGES_INIT_DB):
         current_post_datetime = strToDatetime(post_date + ' ' + post_time)
         
         if db_datetime > current_post_datetime:
+            dtfr =dtfr.drop(username=profile, axis=0)
+            df2 = {'username ': profile,'followers': 'link': link, 'save_date': date_save,'remain_time':time_save}
+            dtfr = dtfr.append(df2, ignore_index = True)
             # new post founded!
             # add page to watchlist
             print(f'New post detect in {profile[KEY_USERNAME]}, adding to watchlist')
             # add_to_watchlist(profile[KEY_USERNAME], post_date, post_time, link,date_save, time_save)
         else:
             print('nothin detected')
-    
+    os.remove("name.csv") 
+    dtfr.to_csv('name.csv')
 
 def monitoring(profiles, PAGES_INIT_DB):
     print('Monitoring Started')

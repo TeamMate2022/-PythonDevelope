@@ -390,26 +390,43 @@ def add_to_watchlist(username, last_post_date, last_post_time, likes, views, lin
     
 
 def check_profiles(profiles, PAGES_INIT_DB):
+    
+    check_info = {}
+    days = 14
+    
     # steps:
     # search profiles that was read from db and then compare with data that in init db
+    
     dtfr = read_information(PAGES_INIT_DB)
-    # print(dtfr)
+
     for profile in profiles:
+    
         find_profile(profile)
-        # db_datetime = strToDatetime(profile[KEY_LAST_POST_DATE] + ' ' + profile[KEY_LAST_POST_TIME])
+    
         db_datetime = strToDatetime(dtfr.at[profile , 'last_post_date'] + ' ' + dtfr.at[profile, 'last_post_time'])
+        
         time.sleep(PAGE_INTERACT_PERIOD)
+        
         post_date, post_time , user, link, date_save, time_save = get_last_post_information()
         current_post_datetime = strToDatetime(post_date + ' ' + post_time)
-        print(link,user)
+    
         if db_datetime < current_post_datetime:
+    
+            print(f'New post detect in {profile} adding to watchlist')
+            
+            user_information = {KEY_USERNAME : profile}
+            link = {KEY_LINK : link}
+            remain_time = {KEY_REMAIN_TIME : days}
+            date_save = {KEY_SAVE_DATE : date_save}
+    
+            check_info.update(user_information)
+            check_info.update(link)
+            check_info.update(date_save)
+            check_info.update(remain_time)
+            
+            task_manager_update(TASKMANAGER_PATH, check_info)
             
             
-            # new post founded!
-            # add page to watchlist
-            
-            print(f'New post detect in adding to watchlist')
-            # add_to_watchlist(profile[KEY_USERNAME], post_date, post_time, link,date_save, time_save)
         else:
             print('nothin detected')
     
@@ -419,6 +436,29 @@ def monitoring(profiles, PAGES_INIT_DB):
     print('Monitoring Started')
     check_profiles(profiles, PAGES_INIT_DB)
     
+
+
+def task_manager_expire(path, urls):
+    #after 14 days of checking  you should call task_manager_expire with path and old url :))
+    
+    df = pd.read_csv(path , index_col = 'link' )
+
+    df2 = df.drop(index= urls)
+    
+    df2.to_csv(path)
+
+
+
+def task_manager_update(path, information):
+    #if a new post detected you should call task_manager_update and pass path and new information :)))
+    
+    
+    headers = list(information.keys())
+    
+    with open(path, 'a', newline= '') as csv_file:       
+        writer = csv.DictWriter(csv_file,fieldnames = headers )
+        writer.writerow(information)
+
 
         
 

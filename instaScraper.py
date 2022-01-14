@@ -391,7 +391,15 @@ def check_profiles(profiles, PAGES_INIT_DB):
         time.sleep(PAGE_INTERACT_PERIOD)
         post_date, post_time , user, link, date_save, time_save = get_last_post_information()
         current_post_datetime = strToDatetime(post_date + ' ' + post_time)
+        followers = (driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[2]/a/span").get_attribute("title").replace(',', '')) 
         
+        try:
+            
+           following = (driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[3]/a/span").text.replace('following', '').replace(' ', ''))
+        
+        except:
+        
+            following = 0
         if db_datetime > current_post_datetime:
             dtfr =dtfr.drop(username=profile, axis=0)
             df2 = {'username ': profile,'followers': 'link': link, 'save_date': date_save,'remain_time':time_save}

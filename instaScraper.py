@@ -20,11 +20,11 @@ import pandas as pd
 DRIVER_PATH = os.path.dirname(__file__) + r"/chromedriver"
 driver = webdriver.Chrome(DRIVER_PATH)
 
-USERNAME = 'tes_tthis'
+USERNAME = 'annonymous_test'
 PASSWORD = 'this is a test 123'
 
 DEBUG = True
-COOKIES = False
+COOKIES = True
 INIT_DATABASE_STATUS = False
 
 CSV_FILE = os.path.dirname(__file__)
@@ -158,9 +158,12 @@ def get_last_post_information():
     post_datetime = driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/div[2]/a/time").get_attribute('datetime')
     post_date, post_time = post_datetime.split("T")
     post_time = post_time[:len(post_time)-5]
-    c = str(datetime.datetime.now())
-    date_save , time_save = c.split(' ')
-    time_save = time_save[:-7]
+    
+    date_save = datetime.datetime.now().date()
+    time_save = datetime.datetime.now().now().strftime("%X")
+    # c = str(datetime.datetime.now())
+    # date_save , time_save = c.split(' ')
+    # time_save = time_save[:-7]
     print(post_date, post_time)
     # driver.close()
     return (post_date, post_time, user_name, post_url, date_save, time_save)
@@ -239,12 +242,7 @@ def write_information(file_path, information):
 def read_information(file_path):
     
     df = pd.read_csv(file_path , index_col = 'username' )
-    
-    # file_content = open(file_path, 'r').read().splitlines()
-    # content_container = []
-    # for item in file_content:
-    #     content_container.append(json.loads(item))
-    # return content_container
+
     return (df)
 
 # TODO: we should edit this method, because this method will work just for one file!
@@ -269,18 +267,7 @@ def write_to_csv(file_path_dest, information, action):
     else:
         print('write_to_csv() --> unknown action')
     
-    # global FIRST_TIME_CSV
-    # # field_names = list(information[0].keys())
-    # if FIRST_TIME_CSV  :
-    #     with open(file_path_dest, 'w', newline= '') as csv_file:          
-    #         writer = csv.DictWriter(csv_file, fieldnames = field_names)
-    #         writer.writeheader()    
-    #         FIRST_TIME_CSV = False
-    #         writer.writerows(information)    
-    # else:
-    #     with open(file_path_dest, 'a', newline= '') as csv_file:
-    #         writer = csv.DictWriter(csv_file, fieldnames = field_names)
-    #         writer.writerows(information)    
+  
            
 
 def strToDatetime(str_date_time):
@@ -315,7 +302,6 @@ def initial_profile_database(profiles):
     profiles_count = len(profiles)
     
     days = 14
-    # list_info = []
     counter = 1
     
     for profile in profiles:
@@ -329,6 +315,7 @@ def initial_profile_database(profiles):
         find_profile(profile)
         
         followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save,content_type = get_profile_information()
+        
         user_information = {KEY_USERNAME : profile}
         profile_information.update(user_information)
         profile_information.update(followers)
@@ -357,21 +344,18 @@ def initial_profile_database(profiles):
             write_to_csv(TASKMANAGER_PATH, check_info, APPEND)
 
         counter += 1
-        
-    # write_to_csv(PAGES_INIT_DB, list_info)
-        
+                
     
     print('INITIAL PROFILE DATABASE finished')
+    
+    
     
 def make_csv_file (profiles):
     ''' here it makes folders by name of each profile name in each folder it makes csv file '''
 
     for profile in profiles:
-
-        # path = r"E:\Python project\InstaScraper\New\\"  +'\\' + profile 
+                
         path = CSV_FILE  +'\\' + profile 
-
-        
         os.mkdir(path)
         
         csv_path = path + '\\' + profile + '.csv'
@@ -381,12 +365,32 @@ def make_csv_file (profiles):
             
 
 def add_to_watchlist(username, last_post_date, last_post_time, likes, views, link, date_save, time_save):
+    
     # open watchlist db and then save information into it
+    
     information = {KEY_USERNAME: username, KEY_LAST_POST_DATE: last_post_date, KEY_LAST_POST_TIME: last_post_time,KEY_LIKES:likes,KEY_VIEWS:views, KEY_LINK:link,KEY_SAVE_DATE:date_save, KEY_SAVE_TIME: time_save}
+    
     with open(WATCHLIST_DB, 'a') as file:
+    
         print('Saving information in watchlist file')
+        
         file.write(json.dumps(information))
         file.write("\n")
+        
+        
+def get_followers_count():
+    followers = (driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[2]/a/span").get_attribute("title").replace(',', '')) 
+    try:
+        
+       following = (driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[3]/a/span").text.replace('following', '').replace(' ', ''))
+    
+    except:
+    
+        following = 0
+    
+    posts = int(driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/header/section/ul/li[1]/span/span").text.replace(',',''))
+    
+    return {KEY_FOLLOWERS : followers}, {KEY_FOLLOWING : following}, {KEY_POSTS : posts}
     
 
 def check_profiles(profiles, PAGES_INIT_DB):
@@ -398,11 +402,14 @@ def check_profiles(profiles, PAGES_INIT_DB):
     # search profiles that was read from db and then compare with data that in init db
     
     dtfr = read_information(PAGES_INIT_DB)
+    zero = 0
 
     for profile in profiles:
     
         find_profile(profile)
-    
+        
+        followers, following, posts = get_followers_count()
+
         db_datetime = strToDatetime(dtfr.at[profile , 'last_post_date'] + ' ' + dtfr.at[profile, 'last_post_time'])
         
         time.sleep(PAGE_INTERACT_PERIOD)
@@ -423,12 +430,23 @@ def check_profiles(profiles, PAGES_INIT_DB):
             check_info.update(link)
             check_info.update(date_save)
             check_info.update(remain_time)
-            
+            print('adding to Taskk_manager')
             task_manager_update(TASKMANAGER_PATH, check_info)
+            #data_base updating
+            print('data base updating...')
             
-            
+            # dtfr =dtfr.drop(profile, axis=0)            
+            # df2 = {'username': profile,'followers': followers.values() , 'following' : following.values() , 'posts': posts.values() , 'link': link.values(), 'save_date': date_save.values(),'save_time':time_save}        
+            # dtfr = dtfr.append(df2, ignore_index = True)
+            # print(dtfr)
+            # time.sleep(3)
+            # os.remove(PAGES_INIT_DB) 
+            # dtfr.to_csv(PAGES_INIT_DB)
         else:
-            print('nothin detected')
+            print('nothing detected')
+        
+
+        
     
 
 def monitoring(profiles, PAGES_INIT_DB):
@@ -439,6 +457,7 @@ def monitoring(profiles, PAGES_INIT_DB):
 
 
 def task_manager_expire(path, urls):
+    
     #after 14 days of checking  you should call task_manager_expire with path and old url :))
     
     df = pd.read_csv(path , index_col = 'link' )
@@ -475,20 +494,17 @@ def run_bot():
     
     # if not INIT_DATABASE_STATUS:
         # init a database of users information
-    # while True:
-    
         # keep eyes on profiles that post new content
-    # while True:
-        
-        # monitoring(profiles, PAGES_INIT_DB)
-        
+
+
+    monitoring(profiles, PAGES_INIT_DB)        
         # time.sleep(WATCHLIST_PERIOD)
 
 # TODO: WARNING - edit here in production
 if not DEBUG:    
     profiles = get_usernames(PROFILES_USERNAME_DB)
 else: 
-    profiles = get_usernames(PROFILES_USERNAME_DB)[:4]
+    profiles = get_usernames(PROFILES_USERNAME_DB)[98:99]
 
 
 

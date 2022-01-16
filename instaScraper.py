@@ -453,7 +453,8 @@ def task_manager_update(path, information):
 # we will sign into instagram and make environment ready to run script
 def run_bot():
     """ this method will initialize bot """
-    init_instagram()
+    # init_instagram()
+    login()
     initial_profile_database(profiles)
 
     # if not INIT_DATABASE_STATUS:

@@ -38,7 +38,7 @@ def draw_csv(param_x , param_y, param_z, param_d, param_f):
     axis[1, 0].set_title("SaveTime : Followers")
     axis[1, 1].step(x,f)
     axis[1, 1].set_title("SaveTime : Following")
-# Save PNG from "YourDocuments" Hussain
+# Save PNG from "YourDocuments"
     plt.savefig(r"C:\Users\<YourDocuments>\Pictures\test.png")
     plt.show()
 

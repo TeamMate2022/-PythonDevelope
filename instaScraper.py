@@ -402,7 +402,7 @@ def check_profiles(profiles, PAGES_INIT_DB):
     # search profiles that was read from db and then compare with data that in init db
     
     dtfr = read_information(PAGES_INIT_DB)
-    zero = 0
+
 
     for profile in profiles:
     

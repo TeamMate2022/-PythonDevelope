@@ -171,9 +171,6 @@ def get_post_information(link):
     else:
         content_type = 'image'
 
-    print('---------------------------------------------------------------')
-    print(likes, view, content_type, post_date, post_time, link, saving_date, saving_time)
-
     return (int(likes), int(view), content_type, post_date, post_time, link, saving_date, saving_time)
 
 

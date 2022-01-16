@@ -1,4 +1,5 @@
 *.exe
+chromedriver
 task_manager_test.csv
 task_manager.csv
 pages_init_db_test.csv

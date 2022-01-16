@@ -1,4 +1,5 @@
 *.exe
+instascraper data
 chromedriver
 task_manager_test.csv
 task_manager.csv

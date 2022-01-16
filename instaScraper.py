@@ -44,8 +44,8 @@ USER_INFORMATIONS = os.path.dirname(__file__) + APP_FOLDER + r"/user_basic_infor
 RESULT_PATH = os.path.dirname(__file__) + APP_FOLDER + r"/result.txt"
 TASKMANAGER_PATH = os.path.dirname(__file__) + APP_FOLDER + r"/task_manager.csv"
 
-LOADING_PERIOD = 16
-PAGE_INTERACT_PERIOD = 6
+LOADING_PERIOD = 12
+PAGE_INTERACT_PERIOD = 4
 MAX_POSTS = 5
 
 WATCHLIST_PERIOD = 30
@@ -97,13 +97,13 @@ def login():
     password.send_keys(PASSWORD)
     driver.find_element_by_css_selector("button[type='submit']").click()
     time.sleep(PAGE_INTERACT_PERIOD)
+    # save login info?
+    time.sleep(PAGE_INTERACT_PERIOD)
+    driver.find_element_by_xpath("//button[contains(text(), 'Not Now')]").click()
 
 def init_instagram():
     """ we will login to instagram and make our bot ready """
     login()
-    # save login info?
-    time.sleep(PAGE_INTERACT_PERIOD)
-    driver.find_element_by_xpath("//button[contains(text(), 'Not Now')]").click()
     # turn off notif
     time.sleep(PAGE_INTERACT_PERIOD)
     driver.find_element_by_xpath("//button[contains(text(), 'Not Now')]").click()
@@ -126,6 +126,7 @@ def find_profile(username):
 
 def go_to_profile(username):
     print("try to open page by it's URL")
+    time.sleep(PAGE_INTERACT_PERIOD)
     driver.get(INSTAGRAM + username)
 
 def get_last_post_link():

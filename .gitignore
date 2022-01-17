@@ -1,0 +1,6 @@
+*.exe
+task_manager_test.csv
+task_manager.csv
+pages_init_db_test.csv
+user_profiles_db.txt
+untitled1.py

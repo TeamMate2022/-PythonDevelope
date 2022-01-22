@@ -5,11 +5,13 @@ Created on Mon Dec 27 18:38:26 2021
 @author : Amirhosein syh
 """
 
+from http import cookies
 import os
 from typing import Counter
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 from datetime import date
 
 import time
@@ -18,10 +20,12 @@ import json
 import csv
 
 import pandas as pd
+import pickle
 
 # config:
 DRIVER_PATH = os.path.dirname(__file__) + r"/chromedriver"
 driver = webdriver.Chrome(DRIVER_PATH)
+driver.maximize_window()
 
 INSTAGRAM = 'https://www.instagram.com/'
 # USERNAME = 'annonymous_test'
@@ -31,8 +35,10 @@ USERNAME = "tes_tthis"
 PASSWORD = "this is a test 123"
 
 DEBUG = True
-COOKIES = True
+COOKIES_DIALOG = True
 INIT_DATABASE_STATUS = False
+
+USE_SAVED_COOKIES = True
 
 APP_FOLDER = r'/instascraper data'
 
@@ -43,6 +49,7 @@ WATCHLIST_DB = os.path.dirname(__file__) + APP_FOLDER+ r"/watchlist_db.txt"
 USER_INFORMATIONS = os.path.dirname(__file__) + APP_FOLDER + r"/user_basic_informations.txt"
 RESULT_PATH = os.path.dirname(__file__) + APP_FOLDER + r"/result.txt"
 TASKMANAGER_PATH = os.path.dirname(__file__) + APP_FOLDER + r"/task_manager.csv"
+COOKIES_FILE = os.path.dirname(__file__) + APP_FOLDER + r'/chrome_cookies.pkl'
 
 LOADING_PERIOD = 12
 PAGE_INTERACT_PERIOD = 4
@@ -78,28 +85,66 @@ FIRST_TIME_CSV = True
 APPEND = 'a'
 WRITE = 'w'
 
-def create_folder(folder_name):
-    os.makedirs(os.getcwd() + folder_name)
+def app_log(method_name, message):
+    print(f'INSTASCRAPER APP -- we are in "{method_name}". \n\t message: {message} \n')
+
+def create_app_folder():
+    try:
+        app_log('create_app_folder','Try to create a folder for the app')
+        os.makedirs(os.getcwd() + APP_FOLDER)
+    except:
+        app_log('create_app_folder', 'Application Folder exists!')
+        pass
+
+def retrive_saved_cookies():
+    app_log('retrive_saved_cookies', 'retriving cookies from saved file')
+    return pickle.load(open(COOKIES_FILE, 'rb'))
+
+def save_cookies():
+    app_log('save_cookies', 'saving current cookies')
+    pickle.dump(driver.get_cookies(), open(COOKIES_FILE, 'wb'))
+    
+def manage_cookies():
+    try:
+        for cookie in retrive_saved_cookies():
+            driver.add_cookie(cookie)
+            return True
+    except:
+        app_log('manage_cookies', 'No cookies file found. Starting in fresh mode!')
+        return False
 
 def login():
-    driver.get(INSTAGRAM)
+    create_app_folder()
+    
+    using_cached_cookies = False
+    if USE_SAVED_COOKIES:
+        using_cached_cookies = manage_cookies()
+
     # accept cookies:
-    if COOKIES:
+    if using_cached_cookies:
+        app_log('login', 'using cached cookies')
+        driver.get(INSTAGRAM)
+    else:
+        driver.get(INSTAGRAM)
+        if COOKIES_DIALOG:
+            time.sleep(PAGE_INTERACT_PERIOD)
+            driver.find_element_by_xpath("//button[contains(text(), 'Accept All')]").click()
+
+        # login
+        time.sleep(LOADING_PERIOD)
+        username = driver.find_element_by_css_selector("input[name='username']")
+        password = driver.find_element_by_css_selector("input[name='password']")
+        username.clear()
+        password.clear()
+        username.send_keys(USERNAME)
+        password.send_keys(PASSWORD)
+        driver.find_element_by_css_selector("button[type='submit']").click()
         time.sleep(PAGE_INTERACT_PERIOD)
-        driver.find_element_by_xpath("//button[contains(text(), 'Accept All')]").click()
-    # login
-    time.sleep(LOADING_PERIOD)
-    username = driver.find_element_by_css_selector("input[name='username']")
-    password = driver.find_element_by_css_selector("input[name='password']")
-    username.clear()
-    password.clear()
-    username.send_keys(USERNAME)
-    password.send_keys(PASSWORD)
-    driver.find_element_by_css_selector("button[type='submit']").click()
-    time.sleep(PAGE_INTERACT_PERIOD)
-    # save login info?
-    time.sleep(PAGE_INTERACT_PERIOD)
-    driver.find_element_by_xpath("//button[contains(text(), 'Not Now')]").click()
+        # save login info?
+        time.sleep(PAGE_INTERACT_PERIOD)
+        driver.find_element_by_xpath("//button[contains(text(), 'Not Now')]").click()
+    save_cookies()
+    
 
 def init_instagram():
     """ we will login to instagram and make our bot ready """
@@ -113,7 +158,7 @@ def get_usernames(PROFILES_USERNAME_DB):
     return open(PROFILES_USERNAME_DB, 'r').read().split('\n')
 
 def find_profile(username):
-    print(f'start to search for {username}')
+    app_log('find_profile', f'start to search for {username}')
     # searchbox
     time.sleep(LOADING_PERIOD)
     searchbox = driver.find_element_by_css_selector("input[placeholder='Search']")
@@ -125,12 +170,12 @@ def find_profile(username):
     time.sleep(PAGE_INTERACT_PERIOD)
 
 def go_to_profile(username):
-    print("try to open page by it's URL")
+    app_log('go_to_profile', f"try to open page by it's URL")
     time.sleep(PAGE_INTERACT_PERIOD)
     driver.get(INSTAGRAM + username)
 
 def get_last_post_link():
-    print('want to get last post link')
+    app_log('get_last_post_link', 'want to get last post link')
     post_url = ""
     links = driver.find_elements_by_tag_name('a')
     for link in links:
@@ -143,6 +188,7 @@ def get_last_post_link():
 
 def get_post_information(link):
     """ with this method we can collect post information by it's link"""
+    app_log('get_post_information', '')
     print(f'try to open {link} and collect data')
     driver.get(link)
     time.sleep(PAGE_INTERACT_PERIOD)
@@ -175,7 +221,7 @@ def get_post_information(link):
 
 
 def get_profile_information(username):
-    print(f'start to collect data from {username} user')
+    app_log('get_profile_information', f'start to collect data from {username} user')
     # find_profile(username)
     go_to_profile(username)
     time.sleep(LOADING_PERIOD)
@@ -231,7 +277,7 @@ def get_last_post_information(link):
     #     if '/p/' in attr:
     #         post_url = attr
     #         break
-
+    app_log('get_last_post_information', '')
     driver.get(link)
     time.sleep(PAGE_INTERACT_PERIOD)
     user_name = driver.find_element_by_xpath(
@@ -286,6 +332,11 @@ def strToDatetime(str_date_time):
     datetime_format = "%Y-%m-%d %H:%M:%S"
     return datetime.datetime.strptime(str_date_time, datetime_format)
 
+def strToDatetime_csv(str_date_time):
+    # this def read times in csv and change it's format to this format month/day/year to year/month/day
+    datetime_format = "%m/%d/%Y"
+    return datetime.datetime.strptime(str_date_time, datetime_format).date()
+
 #TODO: DO NOT DELETE THIS - JUST UPDATE THIS ONE!
 # def scrape_instagram_profiles(profiles):
 #     profiles_count = len(profiles)
@@ -310,13 +361,12 @@ def strToDatetime(str_date_time):
 #         counter += 1
 
 def initial_profile_database(profiles):
-    create_folder(APP_FOLDER)
-
+    
     profiles_count = len(profiles)
     counter = 1
-
+    
     for profile in profiles:
-        print(f'User {counter} of {profiles_count} is in proccessing')
+        app_log('initial_profile_database', f'User {counter} of {profiles_count} is in proccessing')
         profile_information = {}
         task_informaion = {}
         actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save, content_type = get_profile_information(profile)
@@ -334,7 +384,7 @@ def initial_profile_database(profiles):
         profile_information.update(date_save)
         profile_information.update(time_save)
 
-        print(f'collected information is \n{profile_information}')
+        print(f'collected information from "{profile}" is \n{profile_information}')
 
         # remain_time = {KEY_REMAIN_TIME: 
         task_informaion.update(actual_username)
@@ -351,25 +401,23 @@ def initial_profile_database(profiles):
 
         counter += 1
 
-    print('INITIAL PROFILE DATABASE finished')
+    app_log('initial_profile_database', 'database created successfully')
 
 
 # TODO: UPDATE THIS PLEASE! 
 def make_csv_file(profiles):
     ''' here it makes folders by name of each profile name in each folder it makes csv file '''
-
     for profile in profiles:
-
         path = CSV_FILE + '\\' + profile
         os.mkdir(path)
-
         csv_path = path + '\\' + profile + '.csv'
-
         with open(csv_path, 'w') as file:
             file.write('')
 
 def check_profiles(profiles, PAGES_INIT_DB):
-
+    app_log("check_profiles", 'checking profiles to find new post')
+    dicts = {}
+    replace = {}
     check_info = {}
     days = 14
 
@@ -377,23 +425,19 @@ def check_profiles(profiles, PAGES_INIT_DB):
     # search profiles that was read from db and then compare with data that in init db
 
     dtfr = read_information(PAGES_INIT_DB)
-
     for profile in profiles:
         go_to_profile(profile)
-
         # followers, following, posts = get_followers_count()
-
-        db_datetime = strToDatetime(
-            dtfr.at[profile, 'last_post_date'] + ' ' + dtfr.at[profile, 'last_post_time'])
+        db_datetime = strToDatetime(dtfr.at[profile, 'last_post_date'] + ' ' + dtfr.at[profile, 'last_post_time'])
 
         time.sleep(PAGE_INTERACT_PERIOD)
-
-        post_date, post_time, user, link, date_save, time_save = get_last_post_information()
+        link = get_last_post_link()
+        post_date, post_time, user, link, date_save, time_save = get_last_post_information(link)
         current_post_datetime = strToDatetime(post_date + ' ' + post_time)
 
         if db_datetime < current_post_datetime:
-
-            print(f'New post detect in {profile} adding to watchlist')
+            # app_log("check_profiles", f'New post detected in {profile}. Adding "{profile}" to watchlist')
+            print(f'New post detected in {profile}. Adding "{profile}" to watchlist')
 
             user_information = {KEY_USERNAME: profile}
             link = {KEY_LINK: link}
@@ -404,52 +448,90 @@ def check_profiles(profiles, PAGES_INIT_DB):
             check_info.update(link)
             check_info.update(date_save)
             check_info.update(remain_time)
-            print('adding to Taskk_manager')
+            print('adding "{profile} to task_manager')
             task_manager_update(TASKMANAGER_PATH, check_info)
             # data_base updating
-            print('data base updating...')
-
-            # dtfr =dtfr.drop(profile, axis=0)
-            # df2 = {'username': profile,'followers': followers.values() , 'following' : following.values() , 'posts': posts.values() , 'link': link.values(), 'save_date': date_save.values(),'save_time':time_save}
-            # dtfr = dtfr.append(df2, ignore_index = True)
-            # print(dtfr)
-            # time.sleep(3)
-            # os.remove(PAGES_INIT_DB)
-            # dtfr.to_csv(PAGES_INIT_DB)
+            print('updating database...')
+            
+            replace_db(profile , PAGES_INIT_DB)
+        
+        
         else:
             print('nothing detected')
 
 
 def monitoring(profiles, PAGES_INIT_DB):
-    print('Monitoring Started')
+    app_log('monitoring', 'Monitoring Started!')
     check_profiles(profiles, PAGES_INIT_DB)
 
 
 def task_manager_expire(path, urls):
-
     # after 14 days of checking  you should call task_manager_expire with path and old url :))
-
     df = pd.read_csv(path, index_col='link')
-
     df2 = df.drop(index=urls)
-
     df2.to_csv(path)
 
 
 def task_manager_update(path, information):
     # if a new post detected you should call task_manager_update and pass path and new information :)))
-
     headers = list(information.keys())
-
     with open(path, 'a', newline='') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=headers)
         writer.writerow(information)
+
+
+def replace_db(profile , pages_init_db):
+    dtfr = read_information(pages_init_db)
+    dicts = {}
+    replace_dic = {}
+    actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save, content_type = get_profile_information(profile)
+    
+    replace_dic.update(actual_username)
+    replace_dic.update(followers)
+    replace_dic.update(following)
+    replace_dic.update(posts)
+    replace_dic.update(content_type)
+    replace_dic.update(likes)
+    replace_dic.update(views)
+    replace_dic.update(link)
+    replace_dic.update(last_post_date)
+    replace_dic.update(last_post_time)
+    replace_dic.update(date_save)
+    replace_dic.update(time_save)
+    print(replace_dic)
+    df2 = dtfr.at[profile , 'followers'] , dtfr.at[profile , 'following'] , dtfr.at[profile , 'posts'] , dtfr.at[profile , 'content_type'] , dtfr.at[profile , 'likes'] , dtfr.at[profile , 'views'], dtfr.at[profile , 'link'], dtfr.at[profile , 'last_post_date'], dtfr.at[profile , 'last_post_time'], dtfr.at[profile , 'save_date'], dtfr.at[profile , 'save_time']
+    for i,j in zip(KEYS,df2):
+        dicts[i]=j
+
+    df3 = dtfr.replace({dicts['followers'] : replace_dic[KEY_FOLLOWERS] , dicts['following'] : replace_dic[KEY_FOLLOWING] , dicts['posts'] : replace_dic[KEY_POSTS] , dicts['content_type'] : replace_dic[KEY_CONTENT] , dicts['likes'] : replace_dic[KEY_LIKES] , dicts['views'] : replace_dic[KEY_VIEWS] , dicts['link'] : replace_dic[KEY_LINK] , dicts['last_post_date'] : replace_dic[KEY_LAST_POST_DATE] , dicts['last_post_time'] : replace_dic[KEY_LAST_POST_TIME] , dicts['save_date'] : replace_dic[KEY_SAVE_DATE] , dicts['save_time'] : replace_dic[KEY_SAVE_TIME]})
+    print(df3)
+    df3.to_csv(pages_init_db)
+    
+
+
+def check_time(task_path):
+    # this def , find save_date any profile then calculate time for task_manager and each user_csv, after calculate must remove link from task_manager and stop calculation of user_csv
+    date_now = datetime.datetime.now().date()
+    
+    for profile in profiles:
+        df = pd.read_csv(task_path , index_col = 'username')
+        df2 = df.at[profile , 'save_date']
+        df2 = strToDatetime_csv(df2)
+    
+    result = str(abs(date_now - df2)).split(' ')
+    time = int(result[0])
+     
+    if b >= 14 :
+        print("remove link")
+    else:
+        print("continue checking")
 
 
 # Main ________________________________________________
 # we will sign into instagram and make environment ready to run script
 def run_bot():
     """ this method will initialize bot """
+    app_log("run_bot", "Let the show begin!")
     # init_instagram()
     login()
     initial_profile_database(profiles)

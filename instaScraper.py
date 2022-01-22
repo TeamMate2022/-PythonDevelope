@@ -93,22 +93,22 @@ def create_app_folder():
         app_log('create_app_folder','Try to create a folder for the app')
         os.makedirs(os.getcwd() + APP_FOLDER)
     except:
-        app_log('create_app_folder', 'Application Folder exists!')
-        pass
+        app_log('create_app_folder', 'Application folder exists!')
 
 def retrive_saved_cookies():
-    app_log('retrive_saved_cookies', 'retriving cookies from saved file')
+    app_log('retrive_saved_cookies', 'Retriving cookies from saved file')
     return pickle.load(open(COOKIES_FILE, 'rb'))
 
 def save_cookies():
-    app_log('save_cookies', 'saving current cookies')
+    app_log('save_cookies', 'Saving current cookies')
     pickle.dump(driver.get_cookies(), open(COOKIES_FILE, 'wb'))
     
 def manage_cookies():
     try:
         for cookie in retrive_saved_cookies():
+            driver.get(INSTAGRAM)
             driver.add_cookie(cookie)
-            return True
+        return True
     except:
         app_log('manage_cookies', 'No cookies file found. Starting in fresh mode!')
         return False
@@ -120,12 +120,13 @@ def login():
     if USE_SAVED_COOKIES:
         using_cached_cookies = manage_cookies()
 
-    # accept cookies:
+        
     if using_cached_cookies:
         app_log('login', 'using cached cookies')
-        driver.get(INSTAGRAM)
     else:
         driver.get(INSTAGRAM)
+        
+        # accept cookies:
         if COOKIES_DIALOG:
             time.sleep(PAGE_INTERACT_PERIOD)
             driver.find_element_by_xpath("//button[contains(text(), 'Accept All')]").click()
@@ -143,6 +144,7 @@ def login():
         # save login info?
         time.sleep(PAGE_INTERACT_PERIOD)
         driver.find_element_by_xpath("//button[contains(text(), 'Not Now')]").click()
+        
     save_cookies()
     
 
@@ -183,16 +185,16 @@ def get_last_post_link():
         if '/p/' in attr:
             post_url = attr
             break
-    print(f'last post url {post_url}')
+    app_log('get_last_post_link', f'last post url "{post_url}"')
+    
     return post_url
 
 def get_post_information(link):
     """ with this method we can collect post information by it's link"""
-    app_log('get_post_information', '')
-    print(f'try to open {link} and collect data')
+    app_log('get_post_information', f'try to open "{link}" and collect data')
     driver.get(link)
     time.sleep(PAGE_INTERACT_PERIOD)
-
+    
     try:
         likes = (((driver.find_element_by_xpath(
             "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/section[2]/div/div/a/span").text).replace(',', '')))
@@ -205,6 +207,33 @@ def get_post_information(link):
             "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/section[2]/div/div/div[4]/span").text).replace(',', '')))
         view = (((driver.find_element_by_xpath(
             "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/section[2]/div/span/span").text).replace(',', '')))
+    # try:
+    #     try:
+    #         likes = (((driver.find_element_by_xpath('/html/body/div[6]/div[3]/div/article/div/div[2]/div/div/div[2]/section[2]/div/div/a')))).text
+    #         view = 0
+    #     except:    
+    #         likes = (((driver.find_element_by_xpath(
+    #             "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/section[2]/div/div/a/span").text).replace(',', '')))
+    #         view = 0
+    # except:
+    #     try:
+    #         tag_name = '//*[@id="react-root"]/section/main/div/div[1]/article/div/div[1]/div/div/div/div/div/video'.tag_name
+    #     except:
+    #         tag_name = ""
+            
+    #     print(tag_name)
+    #     try:
+    #         if tag_name == 'video':
+    #             driver.find_element_by_xpath(
+    #                 "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/section[2]/div/span").click()
+    #             # time.sleep(PAGE_INTERACT_PERIOD)
+    #             likes = (((driver.find_element_by_xpath(
+    #                 "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/section[2]/div/div/div[4]/span").text).replace(',', '')))
+    #             view = (((driver.find_element_by_xpath(
+    #                 "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/section[2]/div/span/span").text).replace(',', '')))
+    #     except:
+    #         likes = 0
+    #         view = 0
 
     
     post_datetime = driver.find_element_by_xpath("//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/div[2]/a/time").get_attribute('datetime')
@@ -221,7 +250,7 @@ def get_post_information(link):
 
 
 def get_profile_information(username):
-    app_log('get_profile_information', f'start to collect data from {username} user')
+    app_log('get_profile_information', f'start to collect data from "{username}"')
     # find_profile(username)
     go_to_profile(username)
     time.sleep(LOADING_PERIOD)

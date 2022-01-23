@@ -8,6 +8,7 @@ Created on Mon Dec 27 18:38:26 2021
 from http import cookies
 import os
 from typing import Counter
+from winreg import QueryInfoKey
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -508,14 +509,69 @@ def initial_profile_database(profiles):
 
 
 # TODO: UPDATE THIS PLEASE! 
-def make_csv_file(profiles):
-    ''' here it makes folders by name of each profile name in each folder it makes csv file '''
-    for profile in profiles:
-        path = CSV_FILE + '\\' + profile
+# def make_csv_file(profiles):
+#     ''' here it makes folders by name of each profile name in each folder it makes csv file '''
+#     for profile in profiles:
+#         path = CSV_FILE + '\\' + profile
+#         os.mkdir(path)
+#         csv_path = path + '\\' + profile + '.csv'
+#         with open(csv_path, 'w') as file:
+#             file.write('')
+
+def make_csv_file (profile):
+    try:
+        path = CSV_FILE  + '\\' + profile
         os.mkdir(path)
-        csv_path = path + '\\' + profile + '.csv'
-        with open(csv_path, 'w') as file:
-            file.write('')
+        path + '\\' + profile + '.csv'
+    except FileExistsError:
+        app_log('make_csv_file', 'File exists')
+
+def add_new_row(profile_info, action):
+        path = CSV_FILE  +'\\' + profile_info[KEY_USERNAME]
+        
+        csv_path = path + '\\' + profile_info[KEY_USERNAME] + '.csv'
+        url_path = path + '\\' + profile_info[KEY_LINK] + '.csv'
+
+        new_row = profile_info[KEY_LINK]
+
+        # print(type(new_row))
+
+        headers = ['url']
+
+        print(headers)
+        
+        header = list(profile_info.keys())
+
+        if action == WRITE:
+            with open(csv_path, 'w', newline= '') as csv_file:
+                
+                writer = csv.DictWriter(csv_file,fieldnames = headers)
+                
+                writer.writeheader()
+
+                writer.writerow({'url': profile_info[KEY_LINK]})
+
+            with open (url_path , "w" , newline = "") as file:
+                writer = csv.DictWriter(file,fieldnames = header)
+                writer.writeheader()
+                writer.writerow(profile_info)
+                
+        if action == APPEND:
+            with open(csv_path, 'a', newline= '') as csv_file:
+                
+                writer = csv.DictWriter(csv_file,fieldnames = headers)
+                
+                # writer.writeheader()
+
+                writer.writerow({'url': profile_info[KEY_LINK]})
+
+            with open (url_path , "a" , newline = "") as file:
+                header = list(profile_info.keys())
+                print(header)
+                writer = csv.DictWriter(file,fieldnames = header)
+                # writer.writeheader()
+                writer.writerow(profile_info)
+
 
 def check_profiles(profiles, PAGES_INIT_DB):
     app_log("check_profiles", 'checking profiles to find new post')

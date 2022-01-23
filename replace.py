@@ -11,6 +11,9 @@ import pandas as pd
 def replace(profile , pages_init_db)
     dicts = {}
     replace_dic = {}
+    
+    KEYS = ['followers' ,'following' ,'posts' , 'content_type', 'likes' ,'views' ,'link' ,'last_post_date' ,'last_post_time','save_date' ,'save_time' ]
+    
     actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save, content_type = get_profile_information(profile)
     
     replace_dic.update(actual_username)
@@ -27,11 +30,13 @@ def replace(profile , pages_init_db)
     replace_dic.update(time_save)
     
     
+    dtfr = read_information(pages_init_db)
+    
     df2 = dtfr.at[profile , 'followers'] , dtfr.at[profile , 'following'] , dtfr.at[profile , 'posts'] , dtfr.at[profile , 'content_type'] , dtfr.at[profile , 'likes'] , dtfr.at[profile , 'views'], dtfr.at[profile , 'link'], dtfr.at[profile , 'last_post_date'], dtfr.at[profile , 'last_post_time'], dtfr.at[profile , 'save_date'], dtfr.at[profile , 'save_time']
     for i,j in zip(KEYS,df2):
         dicts[i]=j
 
     df3 = dtfr.replace({dicts['followers'] : replace_dic[KEY_FOLLOWERS] , dicts['following'] : replace_dic[KEY_FOLLOWING] , dicts['posts'] : replace_dic[KEY_POSTS] , dicts['content_type'] : replace_dic[KEY_CONTENT] , dicts['likes'] : replace_dic[KEY_LIKES] , dicts['views'] : replace_dic[KEY_VIEWS] , dicts['link'] : replace_dic[KEY_LINK] , dicts['last_post_date'] : replace_dic[KEY_LAST_POST_DATE] , dicts['last_post_time'] : replace_dic[KEY_LAST_POST_TIME] , dicts['save_date'] : replace_dic[KEY_SAVE_DATE] , dicts['save_time'] : replace_dic[KEY_SAVE_TIME]})
     
-    df3.to_csv(PAGES_INIT_DB)
+    df3.to_csv(pages_init_db)
 

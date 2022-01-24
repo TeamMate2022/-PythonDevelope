@@ -715,14 +715,16 @@ def run_bot():
     app_log("run_bot", "Let the show begin!")
     # init_instagram()
     login()
-    initial_profile_database(profiles)
+    # initial_profile_database(profiles)
 
-    # if not INIT_DATABASE_STATUS:
+    if not INIT_DATABASE_STATUS:
+        initial_profile_database (profiles)
+        
     # init a database of users information
     # keep eyes on profiles that post new content
-
-    # monitoring(profiles, PAGES_INIT_DB)
-    # time.sleep(WATCHLIST_PERIOD)
+    while True:
+        monitoring(profiles, PAGES_INIT_DB)
+        time.sleep(WATCHLIST_PERIOD)
 
 
 # TODO: WARNING - edit here in production

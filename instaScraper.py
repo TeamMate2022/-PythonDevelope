@@ -438,9 +438,16 @@ def strToDatetime(str_date_time):
     return datetime.datetime.strptime(str_date_time, datetime_format)
 
 def strToDatetime_csv(str_date_time):
-    # this def read times in csv and change it's format to this format month/day/year to year/month/day
-    datetime_format = "%m/%d/%Y"
-    return datetime.datetime.strptime(str_date_time, datetime_format).date()
+    # this def read times in csv and change format with this model month/day/year to year/month/day
+    try:
+        datetime_format = "%Y-%M-%d"
+        csv_time = datetime.datetime.strptime(str_date_time, datetime_format).date()
+    except:
+        datetime_format = "%m/%d/%Y"
+        csv_time = datetime.datetime.strptime(str_date_time, datetime_format).date()
+    
+    # print(csv_time)
+    return csv_time
 
 #TODO: DO NOT DELETE THIS - JUST UPDATE THIS ONE!
 # def scrape_instagram_profiles(profiles):
@@ -671,22 +678,34 @@ def replace_db(profile , pages_init_db):
     
 
 
+#TODO: ADD METHODS IN THE (IF) FOR REMOVE LINK FROM ANY CSV!
 def check_time(task_path):
-    # this def , find save_date any profile then calculate time for task_manager and each user_csv, after calculate must remove link from task_manager and stop calculation of user_csv
+    '''this def , find save_date any profile then calculate time for task_manager and each user_csv, after calculate must remove link from task_manager and stop calculation of user_csv'''
+   
+    task_list = []
     date_now = datetime.datetime.now().date()
     
-    for profile in profiles:
-        df = pd.read_csv(task_path , index_col = 'username')
-        df2 = df.at[profile , 'save_date']
-        df2 = strToDatetime_csv(df2)
+    with open (task_path , 'r') as file:
+        x = csv.reader(file)
+        next(x)
+        for i in x:
+            
+            task_dict = dict()
+            task_dict['username'] = i[0]
+            task_dict['link'] = i[1]
+            
+            task_list.append(task_dict)
     
-    result = str(abs(date_now - df2)).split(' ')
-    time = int(result[0])
-     
-    if time >= 14 :
-        print("remove link")
-    else:
-        print("continue checking")
+    for task in task_list:
+        link = task['link']
+        read_csv = pd.read_csv(task_path , index_col = 'link')
+        find_pos = read_csv.at[task['link'], 'save_date']
+        save_date = strToDatetime_csv(find_pos)
+        remaining_days = (date_now - save_date).days
+        if remaining_days >= 14:
+            print("remove link")
+        else:
+            print("continue checking")
 
 
 # Main ________________________________________________

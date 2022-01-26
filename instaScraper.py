@@ -4,7 +4,7 @@ Created on Mon Dec 27 18:38:26 2021
 
 @author : Amirhosein syh
 """
-
+from threading import Thread
 from http import cookies
 import os
 from typing import Counter
@@ -30,21 +30,21 @@ driver.maximize_window()
 tabs = []
 
 INSTAGRAM = 'https://www.instagram.com/'
-# USERNAME = 'annonymous_test'
-# PASSWORD = 'this is a test 123'
+USERNAME = 'annonymous_test'
+PASSWORD = 'this is a test 123'
 
-USERNAME = "tes_tthis"
-PASSWORD = "this is a test 12"
+# USERNAME = "tes_tthis"
+# PASSWORD = "this is a test 12"
 
 DEBUG = True
 COOKIES_DIALOG = False
 INIT_DATABASE_STATUS = False
 
-USE_SAVED_COOKIES = True
+USE_SAVED_COOKIES = False
 
 APP_FOLDER = r'/instascraper data'
 
-# list_link = []
+list_link = []
 
 CSV_FILE = os.path.dirname(__file__) + APP_FOLDER
 PROFILES_USERNAME_DB = os.path.dirname(__file__) + r"/user_profiles_db.txt"
@@ -52,6 +52,8 @@ PAGES_INIT_DB = os.path.dirname(__file__) + APP_FOLDER + r"/pages_init_db.csv"
 WATCHLIST_DB = os.path.dirname(__file__) + APP_FOLDER + r"/watchlist_db.txt"
 USER_INFORMATIONS = os.path.dirname(
     __file__) + APP_FOLDER + r"/user_basic_informations.txt"
+LIST_OF_LINKS = os.path.dirname(
+    __file__) + APP_FOLDER + r"/list of links.txt"
 RESULT_PATH = os.path.dirname(__file__) + APP_FOLDER + r"/result.txt"
 TASKMANAGER_PATH = os.path.dirname(
     __file__) + APP_FOLDER + r"/task_manager.csv"
@@ -305,7 +307,8 @@ def get_post_information(link):
     app_log('get_post_information', f'try to open "{link}" and collect data')
     driver.get(link)
     time.sleep(PAGE_INTERACT_PERIOD)
-
+    user_name = driver.find_element_by_xpath(
+        "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[1]/div/header/div[2]/div[1]/div[1]/span/a").text
     try:
         likes = (((driver.find_element_by_xpath(
             "//*[@id='react-root']/section/main/div/div[1]/article/div/div[2]/div/div[2]/section[2]/div/div/a/span").text).replace(',', '')))
@@ -359,7 +362,7 @@ def get_post_information(link):
     else:
         content_type = 'image'
 
-    return (int(likes), int(view), content_type, post_date, post_time, link, saving_date, saving_time)
+    return (user_name, int(likes), int(view), content_type, post_date, post_time, link, saving_date, saving_time)
 
 
 def get_profile_information(username):
@@ -396,7 +399,7 @@ def get_profile_information(username):
             posts = 0
 
         last_post_url = get_last_post_link()
-        likes, view, content_type, post_date, post_time, link, saving_date, saving_time = get_post_information(
+        user, likes, view, content_type, post_date, post_time, link, saving_date, saving_time = get_post_information(
             last_post_url)
 
         return ({KEY_USERNAME: actual_username},
@@ -440,7 +443,8 @@ def get_last_post_information(link):
     # time_save = datetime.datetime.now().now().strftime("%X")
     date_save, time_save = get_current_time_and_date()
     # print(post_date, post_time)
-    app_log('get_last_post_information', 'f{post_date, post_time, user_name, link, date_save, time_save}')
+    app_log('get_last_post_information',
+            f'{post_date, post_time, user_name, link, date_save, time_save}')
     return (post_date, post_time, user_name, link, date_save, time_save)
 
 # ------------------------------------------------------------------------------
@@ -540,8 +544,9 @@ def initial_profile_database(profiles):
         task_informaion = {}
         actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save, content_type = get_profile_information(
             profile)
-        # if link.values() not in list_link:
-            # list_link.append(link.values())
+        x = link[KEY_LINK]
+        if x not in list_link:
+            list_link.append(x)
         profile_information.update(actual_username)
         profile_information.update(followers)
         profile_information.update(following)
@@ -673,20 +678,34 @@ def add_new_row(profile_info, action):
             writer.writerow(profile_info)
 
 
-# def update_info(list_of_links):
-#     for link in list_of_links:
-#         csv_information = {}
-#         driver.get(i)
-#         likes, view, content_type, post_date, post_time, link, saving_date, saving_time = get_post_information(link)
-#         # csv_information.update(actual_username)
-#         csv_information.update(link)
-#         csv_information.update(likes)
-#         csv_information.update(view)
-#         csv_information.update(content_type)
-#         date, time_n = get_current_time_and_date()
-#         csv_information.update({'time': time_n})
+def update_info(list_links):
+    list_links = list(set(list_links))
 
-#         app_log('update_info', )
+    for link in list_links:
+        csv_information = {}
+        driver.get(link)
+        username, likes, view, content_type, post_date, post_time, link, saving_date, saving_time = get_post_information(
+            link)
+
+        actual_username = {KEY_USERNAME: username}
+        likes = {KEY_LIKES: likes}
+        view = {KEY_VIEWS: view}
+        link = {KEY_LINK: link}
+        content_type = {KEY_CONTENT: content_type}
+
+        csv_information.update(actual_username)
+        csv_information.update(link)
+        csv_information.update(likes)
+        csv_information.update(view)
+        csv_information.update(content_type)
+        date, time_n = get_current_time_and_date()
+        csv_information.update({'time': time_n})
+
+        add_new_row(csv_information, WRITE)
+
+        app_log('update_info',
+                f'updating likes & views of this links{list_link}')
+
 
 def check_profiles(profiles, PAGES_INIT_DB):
     app_log("check_profiles", 'checking profiles to find new post')
@@ -712,21 +731,9 @@ def check_profiles(profiles, PAGES_INIT_DB):
         link = get_last_post_link()
         post_date, post_time, user, link, date_save, time_save = get_last_post_information(
             link)
-
-        # if link_1.values() not in list_link:
-        #     list_link.append(link_1.values())
-
-        # here likes and view will update
-
-        csv_information.update(actual_username)
-        csv_information.update(link_1)
-        csv_information.update(likes)
-        csv_information.update(views)
-        csv_information.update(content_type)
-        date, time_n = get_current_time_and_date()
-        csv_information.update({'time': time_n})
-
-        add_new_row(csv_information, WRITE)
+        x = link_1[KEY_LINK]
+        if x not in list_link:
+            list_link.append(x)
 
         current_post_datetime = strToDatetime(post_date + ' ' + post_time)
 
@@ -739,8 +746,16 @@ def check_profiles(profiles, PAGES_INIT_DB):
             link = {KEY_LINK: link}
             date_save = {KEY_SAVE_DATE: date_save}
 
+            csv_information.update(actual_username)
+            csv_information.update(link_1)
+            csv_information.update(likes)
+            csv_information.update(views)
+            csv_information.update(content_type)
+            date, time_n = get_current_time_and_date()
+            csv_information.update({'time': time_n})
+
             check_info.update(user_information)
-            check_info.update(link)
+            check_info.update(link_1)
             check_info.update(date_save)
 
             app_log('check_profiles', 'adding "{profile}" to task_manager')
@@ -847,6 +862,7 @@ def check_time(task_path, task_list):
         remaining_days = (date_now - save_date).days
         if remaining_days >= 14:
             task_manager_expire(task_path, link)
+            list_link.remove(link)
             app_log('check_time', 'remove link from task manager')
         else:
             app_log('check_time', f"continue checking = {link}")
@@ -866,16 +882,40 @@ def run_bot():
     # init a database of users information
     # keep eyes on profiles that post new content
     while True:
-        monitoring(profiles, PAGES_INIT_DB)
-        check_time(TASKMANAGER_PATH, read_task_manager(TASKMANAGER_PATH))
-        time.sleep(WATCHLIST_PERIOD)
-        # update_info(list_link)
+        
+        try:
+
+            monitoring(profiles, PAGES_INIT_DB)
+            check_time(TASKMANAGER_PATH, read_task_manager(TASKMANAGER_PATH))
+            time.sleep(WATCHLIST_PERIOD)
+            update_info(list_link)
+        
+        except:
+            
+            with open(LIST_OF_LINKS, 'w') as f:
+
+                for element in list(set(list_link)):
+                    f.write(element + "\n")
+# ---------------finish---------------------------------------------------------------
+
+    # # if __name__ == '__main__':
+    
+    # if __name__ == '__main__':
+    #     a = Thread(target = monitoring,args=[profiles, PAGES_INIT_DB])
+    #     b = Thread(target = update_info,args=[list_link])
+    #     a.start()
+    #     b.start()
+    #     finish = time.perf_counter()
+    # print(f'finish running after seconds : {finish}')
+            
+
+       
 
 
 # TODO: WARNING - edit here in production
 if not DEBUG:
     profiles = get_usernames(PROFILES_USERNAME_DB)
 else:
-    profiles = get_usernames(PROFILES_USERNAME_DB)[2:5]
+    profiles = get_usernames(PROFILES_USERNAME_DB)[:2]
 
 run_bot()

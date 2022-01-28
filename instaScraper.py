@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from multiprocessing import Process
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -20,12 +21,15 @@ INSTAGRAM = 'https://www.instagram.com/'
 # USERNAME = 'annonymous_test'
 # PASSWORD = 'this is a test 123'
 
-USERNAME = "tes_tthis"
-PASSWORD = "this is a test 12"
+# USERNAME = "tes_tthis"
+# PASSWORD = "this is a test 12"
+
+USERNAME = "iiiittttssssme"
+PASSWORD = "345ert#$%"
 
 DEBUG = True
 COOKIES_DIALOG = True
-INIT_DATABASE_STATUS = False
+INIT_DATABASE_STATUS = True
 
 USE_SAVED_COOKIES = True
 
@@ -46,9 +50,11 @@ TASK_LIST_CSV = os.path.dirname(
     __file__) + APP_FOLDER + r"/Tasks-List.csv"
 COOKIES_FILE = os.path.dirname(__file__) + APP_FOLDER + r'/chrome-cookies.pkl'
 
-LOADING_PERIOD = 13
-PAGE_INTERACT_PERIOD = 5
+LOADING_PERIOD = 10
+PAGE_INTERACT_PERIOD = 3
 MAX_POSTS = 5
+MAX_TASK_DAYS = 14
+MONITORING_SLEEP_TIME = 10
 
 WATCHLIST_PERIOD = 60
 WATCHLIST_REFRESH = 30
@@ -82,6 +88,9 @@ FIRST_TIME_CSV = True
 APPEND = 'a'
 WRITE = 'w'
 NEW = 'new_post'
+
+RETURN_TUPLE = 'tuple'
+RETURN_DICT = 'dict'
 
 
 def app_log(method_name, message):
@@ -132,8 +141,10 @@ def login():
         # accept cookies:
         if COOKIES_DIALOG:
             time.sleep(PAGE_INTERACT_PERIOD)
-            driver.find_element_by_xpath(
-                "//button[contains(text(), 'Accept All')]").click()
+            try:
+                driver.find_element_by_xpath("//button[contains(text(), 'Accept All')]").click()
+            except:
+                pass
 
         # login
         time.sleep(LOADING_PERIOD)
@@ -154,6 +165,29 @@ def login():
 
     save_cookies()
 
+
+def get_current_time_and_date():
+    return (datetime.datetime.utcnow().date(), datetime.datetime.utcnow().strftime("%X"))
+
+def strToDatetime(str_date_time):
+    datetime_format = "%Y-%m-%d %H:%M:%S"
+    # datetime_format = "%Y-%M-%d"
+    return datetime.datetime.strptime(str_date_time, datetime_format)
+
+
+def strToDatetime_csv(str_date_time):
+    # this def read times in csv and change format with this model month/day/year to year/month/day
+    try:
+        datetime_format = "%Y-%M-%d"
+        csv_time = datetime.datetime.strptime(
+            str_date_time, datetime_format).date()
+    except:
+        datetime_format = "%m/%d/%Y"
+        csv_time = datetime.datetime.strptime(
+            str_date_time, datetime_format).date()
+
+    # print(csv_time)
+    return csv_time
 
 def init_instagram():
     """ we will login to instagram and make our bot ready """
@@ -262,7 +296,16 @@ def get_post_information(link):
     else:
         content_type = 'image'
 
-    return (user_name, int(likes), int(view), content_type, post_date, post_time, link, saving_date, saving_time)
+    return(
+        {KEY_LINK: link},
+        {KEY_CONTENT: content_type},
+        {KEY_LIKES: int(likes)},
+        {KEY_VIEWS: int(view)},
+        {KEY_POST_DATE: post_date},
+        {KEY_POST_TIME: post_time},
+        {KEY_SAVE_DATE: saving_date},
+        {KEY_SAVE_TIME: saving_time},
+    )
 
 def get_profile_information(username):
     go_to_profile(username)
@@ -342,21 +385,20 @@ def get_profile_and_last_post_information(username):
             posts = 0
 
         last_post_url = get_last_post_link()
-        user, likes, view, content_type, post_date, post_time, link, saving_date, saving_time = get_post_information(
-            last_post_url)
+        link, content_type, likes, views, post_date, post_time, saving_date, saving_time = get_post_information(last_post_url)
 
         return ({KEY_USERNAME: actual_username},
                 {KEY_FOLLOWERS: followers},
                 {KEY_FOLLOWING: following},
                 {KEY_POSTS: posts},
-                {KEY_LAST_POST_DATE: post_date},
-                {KEY_LAST_POST_TIME: post_time},
-                {KEY_LIKES: likes},
-                {KEY_VIEWS: view},
-                {KEY_LINK: link},
-                {KEY_SAVE_DATE: saving_date},
-                {KEY_SAVE_TIME: saving_time},
-                {KEY_CONTENT: content_type})
+                post_date,
+                post_time,
+                likes,
+                views,
+                link,
+                saving_date,
+                saving_time,
+                content_type)
     else:
         return None
 
@@ -390,39 +432,52 @@ def calculate_engagement(likes, views, followers):
 def read_information(file_path):
     return (pd.read_csv(file_path, index_col='username'))
 
-# TODO: we should edit this method, because this method will work just for one file!
-
 
 def write_to_csv(file_path_dest, information, action):
     global WRITE
     global APPEND
     """ with this method we can convert txt file to cvs file """
-    headers = list(information.keys())
+    info = information
+    if isinstance(information, tuple):
+        for item in information:
+            info.update(item)
+    headers = list(info.keys())
 
     if action == WRITE:
         with open(file_path_dest, 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=headers)
             writer.writeheader()
-            writer.writerow(information)
+            writer.writerow(info)
 
     elif action == APPEND:
         with open(file_path_dest, 'a', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=headers)
-            writer.writerow(information)
+            writer.writerow(info)
 
     else:
         app_log('write_to_csv', 'unknown action')
 
 def save_post_information(user, post_information, action):
+    info = post_information
+    if isinstance(post_information, tuple):
+        info = dict()
+        for item in post_information:
+            info.update(item)
     user_folder_path = make_user_folder(user)
-    post_link = post_information[KEY_LINK].split('/')[4]
+    post_link = info[KEY_LINK].split('/')[4]
     post_path = user_folder_path + r'/{}.csv'.format(post_link)
-    write_to_csv(post_path, post_information, action)
+    write_to_csv(post_path, info, action)
 
 def save_profile_information(username, profile_information, action):
+    info = profile_information
+    if isinstance(profile_information, tuple):
+        info = dict()
+        for item in profile_information:
+            info.update(item)
+    
     user_folder_path = make_user_folder(username)
     user_information_csv = user_folder_path + r'/{}--PageInformation.csv'.format(username)
-    write_to_csv(user_information_csv, profile_information, action)
+    write_to_csv(user_information_csv, info, action)
 
 def save_to_db():
     pass
@@ -430,31 +485,72 @@ def save_to_db():
 def save_to_task_manager():
     pass
 
+def new_post_detected(username):
 
-def get_current_time_and_date():
-    return (datetime.datetime.utcnow().date(), datetime.datetime.utcnow().strftime("%X"))
+    profile_information = dict()
+    post_information = dict()
+    task = dict()
+
+    actual_username, followers, following, posts, last_post_date, last_post_time, \
+     likes, views, link, date_save, time_save, content_type = get_profile_and_last_post_information(username)
+    username = actual_username[KEY_USERNAME]
+     
+    profile_information.update(actual_username)
+    profile_information.update(followers)
+    profile_information.update(following)
+    profile_information.update(posts)
+    profile_information.update(link)
+    profile_information.update(date_save)
+    profile_information.update(time_save)
+
+    post_information.update(link)
+    post_information.update(content_type)
+    post_information.update(likes)
+    post_information.update(views)
+    post_information.update(last_post_date)
+    post_information.update(last_post_time)
+    post_information.update(date_save)
+    post_information.update(time_save)
+    
+    app_log('new_post_detected',f'"{username} just made a new post!"')
+    
+    # task list csv item:
+    task.update(actual_username)
+    task.update(link)
+    task.update(date_save)
+    task.update({KEY_REMAIN_TIME: 14})
+        
+    write_to_csv(ALL_USER_INFORMATIONS, profile_information, APPEND)
+    write_to_csv(TASK_LIST_CSV, task, APPEND)
+
+    # save user information and last post information in user folder
+    save_profile_information(username, profile_information, APPEND)
+    save_post_information(username, post_information, WRITE)
 
 
-def strToDatetime(str_date_time):
-    datetime_format = "%Y-%m-%d %H:%M:%S"
-    # datetime_format = "%Y-%M-%d"
-    return datetime.datetime.strptime(str_date_time, datetime_format)
+def read_tasks_list():
+    df = pd.read_csv(TASK_LIST_CSV)
+    tasks_list = df.to_dict('records')
+    return tasks_list
 
+def add_new_task(task):
+    pass
 
-def strToDatetime_csv(str_date_time):
-    # this def read times in csv and change format with this model month/day/year to year/month/day
-    try:
-        datetime_format = "%Y-%M-%d"
-        csv_time = datetime.datetime.strptime(
-            str_date_time, datetime_format).date()
-    except:
-        datetime_format = "%m/%d/%Y"
-        csv_time = datetime.datetime.strptime(
-            str_date_time, datetime_format).date()
+def update_task_remain_days(task, remain_days):
+    df = pd.read_csv(TASK_LIST_CSV)
+    _index = df[(df[KEY_USERNAME] == task[KEY_USERNAME]) & (df[KEY_LINK] == task[KEY_LINK])].index.values
+    df.at[_index, KEY_REMAIN_TIME] = remain_days
+    df.to_csv(TASK_LIST_CSV, index = False)
 
-    # print(csv_time)
-    return csv_time
-
+def remove_task(task):
+    app_log('remove_task', 'removing task from csv file. TASK= {task}')
+    # removing task from task list
+    df = pd.read_csv(TASK_LIST_CSV)
+    # find index of task:
+    _index = df[(df[KEY_USERNAME] == task[KEY_USERNAME]) & (df[KEY_LINK] == task[KEY_LINK])].index.values
+    # drop task from dataframe and then save it
+    df = df.drop(index= _index)
+    df.to_csv(TASK_LIST_CSV, index=False)
 
 def initial_profile_database(users):
 
@@ -500,7 +596,7 @@ def initial_profile_database(users):
         post_information.update(time_save)
 
         
-        app_log('initial_profile_databse',f'collected information from "{username}" is \n{profile_information}')
+        app_log('initial_profile_databse',f'collected information from "{username}" is \n\t{profile_information}')
         
         # task list csv item:
         task.update(actual_username)
@@ -685,9 +781,52 @@ def check_profiles(profiles, ALL_USER_INFORMATIONS):
             app_log('check_profiles', 'nothing detected')
 
 
-def monitoring(profiles, ALL_USER_INFORMATIONS):
+def monitoring_tasks_list():
+    app_log('monitoring_tasks_list', 'Monitoring started. use tasks list file to do tasks!')
+    # reading task list
+    tasks = read_tasks_list()
+    # check tasks
+    for task in tasks:
+        past_days = ((strToDatetime_csv(task[KEY_SAVE_DATE]) - datetime.datetime.utcnow().date())).days
+        if past_days <= MAX_TASK_DAYS:
+            profile_information = get_profile_information(task[KEY_USERNAME])
+
+            last_post_link = task[KEY_LINK]
+            for item in profile_information:
+                if item.keys == KEY_LINK:
+                    last_post_link = item[KEY_LINK]
+
+            if task[KEY_LINK] != last_post_link:
+                # new post detected! add post to task manager and collect informations
+                new_post_detected(task[KEY_USERNAME])
+
+            post_information = get_post_information(task[KEY_LINK])
+            save_post_information(task[KEY_USERNAME], post_information, APPEND)
+            save_profile_information(task[KEY_USERNAME], profile_information, APPEND)
+            remain_days = MAX_TASK_DAYS - past_days
+
+            app_log('monitoring', f'Post: "{task[KEY_LINK]}" from User: "{task[KEY_USERNAME]}" Remain days: {remain_days} -- Past days: {past_days}')
+            update_task_remain_days(task, remain_days)
+
+        else:
+            # remove task from task list
+            remove_task(task)
+
+def monitoring_all_users():
+    # read all user file
+    # create new driver 
+    # login with existing cache
+    # start to comparing user db link with current last post
+    pass
+
+def monitoring():
     app_log('monitoring', 'Monitoring Started!')
-    check_profiles(profiles, ALL_USER_INFORMATIONS)
+
+    monitoring_tasks_list()
+
+    # monitoring_all_users()
+
+    # check_profiles(profiles, ALL_USER_INFORMATIONS)
 
 
 def task_manager_expire(path, urls):
@@ -782,24 +921,26 @@ def run_bot(users):
     # init_instagram()
     login()
     
-    
-    initial_profile_database(users)
-    # if not INIT_DATABASE_STATUS:
-    #     initial_profile_database(profiles)
+    # initial_profile_database(users)
+    if not INIT_DATABASE_STATUS:
+        initial_profile_database(profiles)
 
+    while True:
+        monitoring()
+        time.sleep(MONITORING_SLEEP_TIME)
 
     # init a database of users information
     # keep eyes on profiles that post new content
-    while True:
-        try:
-            monitoring(users, ALL_USER_INFORMATIONS)
-            check_time(TASK_LIST_CSV, read_task_manager(TASK_LIST_CSV))
-            time.sleep(WATCHLIST_PERIOD)
-            update_info(list_link)
-        except:
-            with open(LIST_OF_LINKS, 'w') as f:
-                for element in list(set(list_link)):
-                    f.write(element + "\n")
+    # while True:
+    #     try:
+    #         monitoring(users, ALL_USER_INFORMATIONS)
+    #         check_time(TASK_LIST_CSV, read_task_manager(TASK_LIST_CSV))
+    #         time.sleep(WATCHLIST_PERIOD)
+    #         update_info(list_link)
+    #     except:
+    #         with open(LIST_OF_LINKS, 'w') as f:
+    #             for element in list(set(list_link)):
+    #                 f.write(element + "\n")
 # ---------------finish---------------------------------------------------------------
 
     # # if __name__ == '__main__':

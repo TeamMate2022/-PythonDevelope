@@ -1,23 +1,11 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Dec 27 18:38:26 2021
-
-@author : Amirhosein syh
-"""
-from threading import Thread
-from http import cookies
 import os
-from typing import Counter
-from winreg import QueryInfoKey
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
-from datetime import date
 
 import time
 import datetime
-import json
 import csv
 
 import pandas as pd
@@ -27,40 +15,39 @@ import pickle
 DRIVER_PATH = os.path.dirname(__file__) + r"/chromedriver"
 driver = webdriver.Chrome(DRIVER_PATH)
 driver.maximize_window()
-tabs = []
 
 INSTAGRAM = 'https://www.instagram.com/'
-USERNAME = 'annonymous_test'
-PASSWORD = 'this is a test 123'
+# USERNAME = 'annonymous_test'
+# PASSWORD = 'this is a test 123'
 
-# USERNAME = "tes_tthis"
-# PASSWORD = "this is a test 12"
+USERNAME = "tes_tthis"
+PASSWORD = "this is a test 12"
 
 DEBUG = True
-COOKIES_DIALOG = False
+COOKIES_DIALOG = True
 INIT_DATABASE_STATUS = False
 
-USE_SAVED_COOKIES = False
+USE_SAVED_COOKIES = True
 
 APP_FOLDER = r'/instascraper data'
 
 list_link = []
 
-CSV_FILE = os.path.dirname(__file__) + APP_FOLDER
+CSV_FILE = os.path.dirname(__file__) + APP_FOLDER + r"/{}"
 PROFILES_USERNAME_DB = os.path.dirname(__file__) + r"/user_profiles_db.txt"
-PAGES_INIT_DB = os.path.dirname(__file__) + APP_FOLDER + r"/pages_init_db.csv"
+ALL_USER_INFORMATIONS = os.path.dirname(__file__) + APP_FOLDER + r"/All-Users-information.csv"
 WATCHLIST_DB = os.path.dirname(__file__) + APP_FOLDER + r"/watchlist_db.txt"
 USER_INFORMATIONS = os.path.dirname(
     __file__) + APP_FOLDER + r"/user_basic_informations.txt"
 LIST_OF_LINKS = os.path.dirname(
     __file__) + APP_FOLDER + r"/list of links.txt"
 RESULT_PATH = os.path.dirname(__file__) + APP_FOLDER + r"/result.txt"
-TASKMANAGER_PATH = os.path.dirname(
-    __file__) + APP_FOLDER + r"/task_manager.csv"
-COOKIES_FILE = os.path.dirname(__file__) + APP_FOLDER + r'/chrome_cookies.pkl'
+TASK_LIST_CSV = os.path.dirname(
+    __file__) + APP_FOLDER + r"/Tasks-List.csv"
+COOKIES_FILE = os.path.dirname(__file__) + APP_FOLDER + r'/chrome-cookies.pkl'
 
-LOADING_PERIOD = 12
-PAGE_INTERACT_PERIOD = 4
+LOADING_PERIOD = 13
+PAGE_INTERACT_PERIOD = 5
 MAX_POSTS = 5
 
 WATCHLIST_PERIOD = 60
@@ -78,6 +65,8 @@ KEY_FOLLOWING = "following"
 KEY_ANALYSED_POSTS = "analysed_posts"
 KEY_LAST_POST_DATE = "last_post_date"
 KEY_LAST_POST_TIME = "last_post_time"
+KEY_POST_DATE = "post_date"
+KEY_POST_TIME = "post_time"
 KEY_LIKES = "likes"
 KEY_VIEWS = "views"
 KEY_ENGAGEMENT = "engagement"
@@ -98,7 +87,6 @@ NEW = 'new_post'
 def app_log(method_name, message):
     print(
         f'INSTASCRAPER APP -- we are in "{method_name}". \n\t message: {message} \n')
-
 
 def create_app_folder():
     try:
@@ -174,94 +162,6 @@ def init_instagram():
     time.sleep(PAGE_INTERACT_PERIOD)
     driver.find_element_by_xpath(
         "//button[contains(text(), 'Not Now')]").click()
-
-# --------------------- TAB MANAGER SECTION
-# if you want to findout tab id of specific url, you can use this method
-
-
-# def find_tab_id(tab_link):
-#     for tab in tabs:
-#         if tab['tab_link'] == tab_link:
-#             return tab['tab_id']
-
-# open new tab and open links - save tab information to a list
-
-
-# def open_tabs(links):
-#     for link in links:
-#         tab_information = {}
-#         # first of all open a new tab
-#         driver.execute_script("window.open('');")
-#         # switch to new tab
-#         driver.switch_to.window(
-#             driver.window_handles[(len(driver.window_handles)-1)])
-#         driver.get(link)
-#         tab_information['tab_id'] = len(driver.window_handles) - 1
-#         tab_information['tab_link'] = link
-#         print(tab_information)
-#         tabs.append(tab_information)
-#     return tabs
-
-# # refresh specific tab
-
-
-# def refresh_tab(tab_id):
-#     driver.switch_to.window(driver.window_handles[tab_id])
-#     driver.refresh()
-#     time.sleep(2)
-
-# # switch to specific tab
-
-
-# def switch_to_tab(tab_id):
-#     driver.switch_to.window(driver.window_handles[tab_id])
-#     time.sleep(1)
-#     return True
-
-
-# def close_tab(tab_id):
-#     driver.switch_to.window(driver.window_handles[tab_id])
-#     time.sleep(2)
-#     driver.close()
-#     if (len(driver.window_handles)) <= 1:
-#         driver.switch_to.window(driver.window_handles[tab_id]-1)
-
-# def close_tab(tab_link):
-#     for tab in tabs:
-#         if tab['tab_link'] == tab_link:
-#             print(tab_link)
-#             driver.switch_to.window(driver.window_handles[tab['tab_id']])
-#             time.sleep(2)
-#             driver.close()
-#             if (len(driver.window_handles)) <= 1:
-#                 driver.switch_to.window(driver.window_handles[tab['tab_id']]-1)
-
-# we will manage our tabs here
-
-
-# def tab_manager(links):
-
-
-#     # tabs = []
-#     # open links in new tabs:
-#     tabs = open_tabs(links)
-
-#     open_tabs(links_list)
-#     for tab in tabs:
-#         if switch_to_tab(tab['tab_id']):
-#             get_post_information(tab['tab_link'])
-#     # refresh_tabs(tabs_list)
-#     for tab in tabs:
-#         if switch_to_tab(tab['tab_id']):
-#             print(f"Refreshing page number {tab['tab_id']}")
-#             refresh_tab(tab['tab_id'])
-
-#     # print(find_tab_id[tabs[0]['tab_link']]
-#     close_tab(tabs[1]['tab_id'])
-    # close_tab(tabs[1]["tab_link"])
-
-# --------------------- TAB MANAGER SECTION
-
 
 def get_usernames(PROFILES_USERNAME_DB):
     """ this method will read usernames from user_profiles file"""
@@ -364,9 +264,52 @@ def get_post_information(link):
 
     return (user_name, int(likes), int(view), content_type, post_date, post_time, link, saving_date, saving_time)
 
-
 def get_profile_information(username):
-    app_log('get_profile_information',
+    go_to_profile(username)
+    time.sleep(LOADING_PERIOD)
+    # TODO: we will face with bug if we find a profile that have no followers or following
+    try:
+        actual_username = driver.find_element_by_xpath(
+            "//*[@id='react-root']/section/main/div/header/section/div[1]/h1").text
+    except:
+        actual_username = driver.find_element_by_xpath(
+            "//*[@id='react-root']/section/main/div/header/section/div[1]/h2").text
+
+    if username == actual_username:
+        try:
+            followers = (driver.find_element_by_xpath(
+                "//*[@id='react-root']/section/main/div/header/section/ul/li[2]/a/span").get_attribute("title").replace(',', ''))
+        except:
+            followers = 0
+
+        try:
+            following = (driver.find_element_by_xpath(
+                "//*[@id='react-root']/section/main/div/header/section/ul/li[3]/a/span").text.replace('following', '').replace(' ', ''))
+        except:
+            following = 0
+
+        try:
+            posts = int(driver.find_element_by_xpath(
+                "//*[@id='react-root']/section/main/div/header/section/ul/li[1]/span/span").text.replace(',', ''))
+        except:
+            posts = 0
+
+        last_post_url = get_last_post_link()
+        saving_date, saving_time = get_current_time_and_date()
+
+        return ({KEY_USERNAME: actual_username},
+                {KEY_FOLLOWERS: followers},
+                {KEY_FOLLOWING: following},
+                {KEY_POSTS: posts},
+                {KEY_LINK: last_post_url},
+                {KEY_SAVE_DATE: saving_date},
+                {KEY_SAVE_TIME: saving_time})
+    else:
+        return None
+
+# TODO: EDIT THIS METHOD LATER
+def get_profile_and_last_post_information(username):
+    app_log('get_profile_and_last_post_information',
             f'start to collect data from "{username}"')
     # find_profile(username)
     go_to_profile(username)
@@ -420,14 +363,6 @@ def get_profile_information(username):
 
 def get_last_post_information(link):
     """ get last post url and then open it, finally extract date and time"""
-    # posts
-    # post_url = ""
-    # links = driver.find_elements_by_tag_name('a')
-    # for link in links:
-    #     attr = link.get_attribute('href')
-    #     if '/p/' in attr:
-    #         post_url = attr
-    #         break
     app_log('get_last_post_information', '')
     driver.get(link)
     time.sleep(PAGE_INTERACT_PERIOD)
@@ -439,10 +374,7 @@ def get_last_post_information(link):
     post_date, post_time = post_datetime.split("T")
     post_time = post_time[:len(post_time)-5]
 
-    # date_save = datetime.datetime.now().date()
-    # time_save = datetime.datetime.now().now().strftime("%X")
     date_save, time_save = get_current_time_and_date()
-    # print(post_date, post_time)
     app_log('get_last_post_information',
             f'{post_date, post_time, user_name, link, date_save, time_save}')
     return (post_date, post_time, user_name, link, date_save, time_save)
@@ -469,7 +401,6 @@ def write_to_csv(file_path_dest, information, action):
 
     if action == WRITE:
         with open(file_path_dest, 'w', newline='') as csv_file:
-
             writer = csv.DictWriter(csv_file, fieldnames=headers)
             writer.writeheader()
             writer.writerow(information)
@@ -481,6 +412,23 @@ def write_to_csv(file_path_dest, information, action):
 
     else:
         app_log('write_to_csv', 'unknown action')
+
+def save_post_information(user, post_information, action):
+    user_folder_path = make_user_folder(user)
+    post_link = post_information[KEY_LINK].split('/')[4]
+    post_path = user_folder_path + r'/{}.csv'.format(post_link)
+    write_to_csv(post_path, post_information, action)
+
+def save_profile_information(username, profile_information, action):
+    user_folder_path = make_user_folder(username)
+    user_information_csv = user_folder_path + r'/{}--PageInformation.csv'.format(username)
+    write_to_csv(user_information_csv, profile_information, action)
+
+def save_to_db():
+    pass
+
+def save_to_task_manager():
+    pass
 
 
 def get_current_time_and_date():
@@ -507,180 +455,148 @@ def strToDatetime_csv(str_date_time):
     # print(csv_time)
     return csv_time
 
-# TODO: DO NOT DELETE THIS - JUST UPDATE THIS ONE!
-# def scrape_instagram_profiles(profiles):
-#     profiles_count = len(profiles)
-#     counter = 1
-#     for profile in profiles:
-#         print(f'User {counter} of {profiles_count} is in proccessing')
-#         profile_information = {}
-#         find_profile(profile)
-#         followers, posts = get_profile_information()
-#         likes, views, analysed_posts = total_likes(MAX_POSTS)
-#         engagement = calculate_engagement(
-#             likes[KEY_LIKES], views[KEY_VIEWS], followers[KEY_FOLLOWERS])
-#         user_information = {KEY_USERNAME: profile}
-#         profile_information.update(user_information)
-#         profile_information.update(followers)
-#         profile_information.update(posts)
-#         profile_information.update(likes)
-#         profile_information.update(views)
-#         profile_information.update(analysed_posts)
-#         profile_information.update(engagement)
-#         write_information(RESULT_PATH, profile_information)
-#         counter += 1
 
+def initial_profile_database(users):
 
-def initial_profile_database(profiles):
+    profiles_count = len(users)
 
-    profiles_count = len(profiles)
-    counter = 1
+    for index, username in enumerate(users):
 
-    for profile in profiles:
         app_log('initial_profile_database',
-                f'User {counter} of {profiles_count} is in proccessing')
-        profile_information = {}
-        csv_information = {}
-        task_informaion = {}
-        actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save, content_type = get_profile_information(
-            profile)
-        x = link[KEY_LINK]
-        if x not in list_link:
-            list_link.append(x)
+                f'User {index+1} of {profiles_count} is in proccessing')  
+
+        profile_information = dict()
+        post_information = dict()
+        task = dict()
+        
+        actual_username, followers, following, posts, last_post_date, last_post_time, \
+         likes, views, link, date_save, time_save, content_type = get_profile_and_last_post_information(username)
+
+        username = actual_username[KEY_USERNAME]
+         
         profile_information.update(actual_username)
         profile_information.update(followers)
         profile_information.update(following)
         profile_information.update(posts)
-        profile_information.update(content_type)
-        profile_information.update(likes)
-        profile_information.update(views)
         profile_information.update(link)
-        profile_information.update(last_post_date)
-        profile_information.update(last_post_time)
         profile_information.update(date_save)
         profile_information.update(time_save)
 
-        app_log('initial_profile_databse',
-                f'collected information from "{profile}" is \n{profile_information}')
+        # profile_information.update(content_type)
+        # profile_information.update(likes)
+        # profile_information.update(views)
+        # profile_information.update(last_post_date)
+        # profile_information.update(last_post_time)
+        # profile_information.update(date_save)
+        # profile_information.update(time_save)
 
-        csv_information.update(actual_username)
-        csv_information.update(link)
-        csv_information.update(likes)
-        csv_information.update(views)
-        csv_information.update(content_type)
-        date, time_n = get_current_time_and_date()
-        csv_information.update({'time': time_n})
+        post_information.update(link)
+        post_information.update(content_type)
+        post_information.update(likes)
+        post_information.update(views)
+        post_information.update(last_post_date)
+        post_information.update(last_post_time)
+        post_information.update(date_save)
+        post_information.update(time_save)
 
-        # remain_time = {KEY_REMAIN_TIME:
-        task_informaion.update(actual_username)
-        task_informaion.update(link)
-        task_informaion.update(date_save)
-        # check_info.update(remain_time)
+        
+        app_log('initial_profile_databse',f'collected information from "{username}" is \n{profile_information}')
+        
+        # task list csv item:
+        task.update(actual_username)
+        task.update(link)
+        task.update(date_save)
+        task.update({KEY_REMAIN_TIME: 14})
 
-        if counter == 1:
-            make_csv_file(profile)
-            write_to_csv(PAGES_INIT_DB, profile_information, WRITE)
-            write_to_csv(TASKMANAGER_PATH, task_informaion, WRITE)
-
+        if index == 0:
+            write_to_csv(ALL_USER_INFORMATIONS, profile_information, WRITE)
+            write_to_csv(TASK_LIST_CSV, task, WRITE)
+            
         else:
-            make_csv_file(profile)
-            write_to_csv(PAGES_INIT_DB, profile_information, APPEND)
-            write_to_csv(TASKMANAGER_PATH, task_informaion, APPEND)
-
-        add_new_row(csv_information, NEW)
-
-        counter += 1
-
-    app_log('initial_profile_database', 'database created successfully')
+            write_to_csv(ALL_USER_INFORMATIONS, profile_information, APPEND)
+            write_to_csv(TASK_LIST_CSV, task, APPEND)
 
 
-# TODO: UPDATE THIS PLEASE!
-# def make_csv_file(profiles):
-#     ''' here it makes folders by name of each profile name in each folder it makes csv file '''
-#     for profile in profiles:
-#         path = CSV_FILE + '\\' + profile
-#         os.mkdir(path)
-#         csv_path = path + '\\' + profile + '.csv'
-#         with open(csv_path, 'w') as file:
-#             file.write('')
+        # save user information and last post information in user folder
+        save_profile_information(username, profile_information, WRITE)
+        save_post_information(username, post_information, WRITE) 
 
-def make_csv_file(profile):
+    app_log('initial_profile_database', 'informations saved successfully')
+
+
+
+def make_user_folder(username):
     try:
-        path = CSV_FILE + '\\' + profile
+        path = CSV_FILE.format(username)
         os.mkdir(path)
-        path + '\\' + profile + '.csv'
+        return path
     except FileExistsError:
         app_log('make_csv_file', 'File exists')
+        return CSV_FILE.format(username)
 
 
 def add_new_row(profile_info, action):
-
-    path = CSV_FILE + '\\' + profile_info[KEY_USERNAME]
-
-    csv_path = path + '\\' + profile_info[KEY_USERNAME] + '.csv'
-
-    link_lis = profile_info[KEY_LINK].split('/')
-    n_link = ' '.join(link_lis).split()
-
-    url_path = path + '\\' + n_link[-1] + '.csv'
-
+    folder_path = CSV_FILE.format(profile_info[KEY_USERNAME])
+    
+    print(profile_info)
+    
+    
+    # csv_path = folder_path + r'/{}.csv'.format(profile_info[KEY_LINK])   
+    
+    # link_list = profile_info[KEY_LINK].split('/')
+    # new_link = ' '.join(link_list).split()
+    
+    csv_name = profile_info[KEY_LINK].split('/')[4]
+    csv_path = folder_path + r'/{}.csv'.format(csv_name)
+    
+    # url_path = path + '\\' + new_link[-1] + '.csv'
+    
     headers = ['url']
+    # try:
+    #     if os.stat(csv_path).st_size == 0:
+    #         with open(csv_path, 'w', newline='') as csv_file:
+    #             writer = csv.DictWriter(csv_file, fieldnames=headers)
+    #             writer.writeheader()
+    #             writer.writerow({'url': profile_info[KEY_LINK]})
+                
+    #     elif action == NEW:
+    #         with open(csv_path, 'a', newline='') as csv_file:
+    #             writer = csv.DictWriter(csv_file, fieldnames=headers)
+    #             # writer.writeheader()
+    #             writer.writerow({'url': profile_info[KEY_LINK]})
 
-    try:
+    # except FileNotFoundError:
+    #     with open(csv_path, 'w', newline='') as csv_file:
+    #         writer = csv.DictWriter(csv_file, fieldnames=headers)
+    #         writer.writeheader()
+    #         writer.writerow({'url': profile_info[KEY_LINK]})
 
-        if os.stat(csv_path).st_size == 0:
+    # try:
+    #     if os.stat(url_path).st_size == 0:
+    #         with open(url_path, 'w', newline='') as file:
+    #             header = list(profile_info.keys())
+    #             writer = csv.DictWriter(file, fieldnames=header)
+    #             writer.writeheader()
+    #             writer.writerow(profile_info)
 
-            with open(csv_path, 'w', newline='') as csv_file:
-
-                writer = csv.DictWriter(csv_file, fieldnames=headers)
-
-                writer.writeheader()
-
-                writer.writerow({'url': profile_info[KEY_LINK]})
-        elif action == NEW:
-            with open(csv_path, 'a', newline='') as csv_file:
-
-                writer = csv.DictWriter(csv_file, fieldnames=headers)
-
-                # writer.writeheader()
-
-                writer.writerow({'url': profile_info[KEY_LINK]})
-
-    except FileNotFoundError:
-        with open(csv_path, 'w', newline='') as csv_file:
-
-            writer = csv.DictWriter(csv_file, fieldnames=headers)
-
-            writer.writeheader()
-
-            writer.writerow({'url': profile_info[KEY_LINK]})
-
-    try:
-        if os.stat(url_path).st_size == 0:
-            with open(url_path, 'w', newline='') as file:
-                header = list(profile_info.keys())
-                writer = csv.DictWriter(file, fieldnames=header)
-                writer.writeheader()
-                writer.writerow(profile_info)
-
-        else:
-            with open(url_path, "a", newline='') as file:
-                header = list(profile_info.keys())
-                # print(header)
-                writer = csv.DictWriter(file, fieldnames=header)
-                # writer.writeheader()
-                writer.writerow(profile_info)
-    except FileNotFoundError:
-        with open(url_path, 'w', newline='') as file:
-            header = list(profile_info.keys())
-            writer = csv.DictWriter(file, fieldnames=header)
-            writer.writeheader()
-            writer.writerow(profile_info)
+    #     else:
+    #         with open(url_path, "a", newline='') as file:
+    #             header = list(profile_info.keys())
+    #             # print(header)
+    #             writer = csv.DictWriter(file, fieldnames=header)
+    #             # writer.writeheader()
+    #             writer.writerow(profile_info)
+                
+    # except FileNotFoundError:
+    #     with open(url_path, 'w', newline='') as file:
+    #         header = list(profile_info.keys())
+    #         writer = csv.DictWriter(file, fieldnames=header)
+    #         writer.writeheader()
+    #         writer.writerow(profile_info)
 
 
 def update_info(list_links):
     list_links = list(set(list_links))
-
     for link in list_links:
         csv_information = {}
         driver.get(link)
@@ -707,13 +623,13 @@ def update_info(list_links):
                 f'updating likes & views of this links{list_link}')
 
 
-def check_profiles(profiles, PAGES_INIT_DB):
+def check_profiles(profiles, ALL_USER_INFORMATIONS):
     app_log("check_profiles", 'checking profiles to find new post')
 
     # steps:
     # search profiles that was read from db and then compare with data that in init db
 
-    dtfr = read_information(PAGES_INIT_DB)
+    dtfr = read_information(ALL_USER_INFORMATIONS)
     for profile in profiles:
 
         go_to_profile(profile)
@@ -726,7 +642,7 @@ def check_profiles(profiles, PAGES_INIT_DB):
             dtfr.at[profile, 'last_post_date'] + ' ' + dtfr.at[profile, 'last_post_time'])
 
         time.sleep(PAGE_INTERACT_PERIOD)
-        actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link_1, date_save, time_save, content_type = get_profile_information(
+        actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link_1, date_save, time_save, content_type = get_profile_and_last_post_information(
             profile)
         link = get_last_post_link()
         post_date, post_time, user, link, date_save, time_save = get_last_post_information(
@@ -759,19 +675,19 @@ def check_profiles(profiles, PAGES_INIT_DB):
             check_info.update(date_save)
 
             app_log('check_profiles', 'adding "{profile}" to task_manager')
-            task_manager_update(TASKMANAGER_PATH, check_info)
+            task_manager_update(TASK_LIST_CSV, check_info)
             # data_base updating
             app_log('check_profiles', 'updating "{profile}" to database...')
 
-            replace_db(profile, PAGES_INIT_DB)
+            replace_db(profile, ALL_USER_INFORMATIONS)
             add_new_row(csv_information, NEW)
         else:
             app_log('check_profiles', 'nothing detected')
 
 
-def monitoring(profiles, PAGES_INIT_DB):
+def monitoring(profiles, ALL_USER_INFORMATIONS):
     app_log('monitoring', 'Monitoring Started!')
-    check_profiles(profiles, PAGES_INIT_DB)
+    check_profiles(profiles, ALL_USER_INFORMATIONS)
 
 
 def task_manager_expire(path, urls):
@@ -779,7 +695,6 @@ def task_manager_expire(path, urls):
     df = pd.read_csv(path, index_col='link')
     df2 = df.drop(index=urls)
     df2.to_csv(path)
-
 
 def task_manager_update(path, information):
     # if a new post detected you should call task_manager_update and pass path and new information :)))
@@ -789,11 +704,11 @@ def task_manager_update(path, information):
         writer.writerow(information)
 
 
-def replace_db(profile, pages_init_db):
-    dtfr = read_information(pages_init_db)
+def replace_db(profile, ALL_USER_INFORMATIONS):
+    dtfr = read_information(ALL_USER_INFORMATIONS)
     dicts = {}
     replace_dic = {}
-    actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save, content_type = get_profile_information(
+    actual_username, followers, following, posts, last_post_date, last_post_time, likes, views, link, date_save, time_save, content_type = get_profile_and_last_post_information(
         profile)
 
     keys = [KEY_FOLLOWERS, KEY_FOLLOWING, KEY_POSTS, KEY_CONTENT, KEY_LIKES, KEY_VIEWS,
@@ -819,7 +734,7 @@ def replace_db(profile, pages_init_db):
 
     df3 = dtfr.replace({dicts['followers']: replace_dic[KEY_FOLLOWERS], dicts['following']: replace_dic[KEY_FOLLOWING], dicts['posts']: replace_dic[KEY_POSTS], dicts['content_type']: replace_dic[KEY_CONTENT], dicts['likes']: replace_dic[KEY_LIKES], dicts['views']: replace_dic[KEY_VIEWS], dicts['link']: replace_dic[KEY_LINK], dicts['last_post_date']: replace_dic[KEY_LAST_POST_DATE], dicts['last_post_time']: replace_dic[KEY_LAST_POST_TIME], dicts['save_date']: replace_dic[KEY_SAVE_DATE], dicts['save_time']: replace_dic[KEY_SAVE_TIME]})
     print(df3)
-    df3.to_csv(pages_init_db)
+    df3.to_csv(ALL_USER_INFORMATIONS)
 
 
 def read_task_manager(file_path):
@@ -844,16 +759,6 @@ def check_time(task_path, task_list):
     task_list = read_task_manager(task_path)
     date_now = datetime.datetime.now().date()
 
-    # with open(task_path, 'r') as file:
-    #     x = csv.reader(file)
-    #     next(x)
-    #     for i in x:
-
-    #         task_dict = dict()
-    #         task_dict['username'] = i[0]
-    #         task_dict['link'] = i[1]
-
-    #         task_list.append(task_dict)
     for task in task_list:
         link = task['link']
         read_csv = pd.read_csv(task_path, index_col='link')
@@ -870,30 +775,29 @@ def check_time(task_path, task_list):
 
 # Main ________________________________________________
 # we will sign into instagram and make environment ready to run script
-def run_bot():
+def run_bot(users):
     """ this method will initialize bot """
     app_log("run_bot", "Let the show begin!")
+    
     # init_instagram()
     login()
-    initial_profile_database(profiles)
+    
+    
+    initial_profile_database(users)
     # if not INIT_DATABASE_STATUS:
     #     initial_profile_database(profiles)
+
 
     # init a database of users information
     # keep eyes on profiles that post new content
     while True:
-        
         try:
-
-            monitoring(profiles, PAGES_INIT_DB)
-            check_time(TASKMANAGER_PATH, read_task_manager(TASKMANAGER_PATH))
+            monitoring(users, ALL_USER_INFORMATIONS)
+            check_time(TASK_LIST_CSV, read_task_manager(TASK_LIST_CSV))
             time.sleep(WATCHLIST_PERIOD)
             update_info(list_link)
-        
         except:
-            
             with open(LIST_OF_LINKS, 'w') as f:
-
                 for element in list(set(list_link)):
                     f.write(element + "\n")
 # ---------------finish---------------------------------------------------------------
@@ -901,7 +805,7 @@ def run_bot():
     # # if __name__ == '__main__':
     
     # if __name__ == '__main__':
-    #     a = Thread(target = monitoring,args=[profiles, PAGES_INIT_DB])
+    #     a = Thread(target = monitoring,args=[profiles, ALL_USER_INFORMATIONS])
     #     b = Thread(target = update_info,args=[list_link])
     #     a.start()
     #     b.start()
@@ -910,12 +814,10 @@ def run_bot():
             
 
        
-
-
 # TODO: WARNING - edit here in production
 if not DEBUG:
     profiles = get_usernames(PROFILES_USERNAME_DB)
 else:
     profiles = get_usernames(PROFILES_USERNAME_DB)[:2]
 
-run_bot()
+run_bot(profiles)
